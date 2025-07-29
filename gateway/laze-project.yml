@@ -1,0 +1,18 @@
+imports:
+  - git:
+      url: https://github.com/nponsard/ariel-os
+      branch: laposte-demo-v0.3.0
+    dldir: ariel-os
+
+apps:
+  - name: ble-scan-reporter-demo-gateway
+    context:
+      - nordic-thingy-91-x-nrf9151
+    selects:
+      - alloc
+      - nrf91-modem
+      - ltem-nrf-modem
+      - network
+      - coap-client
+      - coap-server
+      - coap-server-config-storage

@@ -1,0 +1,32 @@
+[package]
+name = "ble-scan-reporter-demo"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ariel-os = { path = "build/imports/ariel-os/src/ariel-os", features = [
+  "time",
+  "uart",
+] }
+ariel-os-boards = { path = "build/imports/ariel-os/src/ariel-os-boards" }
+embassy-futures = { version = "0.1.1" }
+heapless = { version = "0.9.2", features = ["defmt-03"] }
+trouble-host = { version = "0.1.0", features = ["derive", "scan"] }
+embassy-nrf = { version = "0.3.1" }
+postcard = { version = "1.1.3", features = ["use-defmt"] }
+common-types = { path = "../common-types", features = ["from-impl"] }
+embassy-sync = { version = "0.6.2" }
+embedded-io-async = { version = "0.6.1", default-features = false }
+
+
+[target.'cfg(context = "nrf5340-net")'.dependencies]
+embassy-nrf = { version = "0.3.1", features = ["nrf5340-net"] }
+[target.'cfg(context = "nrf52832")'.dependencies]
+embassy-nrf = { version = "0.3.1", features = ["nfc-pins-as-gpio", "nrf52832"] }
+[target.'cfg(context = "nrf52840")'.dependencies]
+embassy-nrf = { version = "0.3.1", features = ["nfc-pins-as-gpio", "nrf52840"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+  'cfg(context, values(any()))',
+] }

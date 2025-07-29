@@ -1,0 +1,5 @@
+/target
+/build
+.gdb_history
+.vscode
+.env

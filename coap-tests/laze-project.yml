@@ -1,0 +1,14 @@
+imports:
+  - git:
+      url: https://github.com/nponsard/ariel-os
+      branch: laposte-demo-v0.3.0
+    dldir: ariel-os
+
+apps:
+  - name: ble-scan-reporter-demo-gateway
+    selects:
+      - alloc
+      - network
+      - coap-client
+      - coap-server
+      - coap-server-config-storage

@@ -1,0 +1,52 @@
+[package]
+name = "ble-scan-reporter-demo-gateway"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ariel-os = { path = "build/imports/ariel-os/src/ariel-os", features = [
+  "tcp",
+  "mdns",
+  "dns",
+  "time",
+  "uart",
+  "sensors",
+  "external-interrupts",
+] }
+ariel-os-boards = { path = "build/imports/ariel-os/src/ariel-os-boards" }
+ariel-os-nrf91-gnss = { path = "build/imports/ariel-os/src/sensors/ariel-os-nrf91-gnss", features = [
+  "defmt",
+] }
+ariel-os-sensors-gnss-time-ext = { path = "build/imports/ariel-os/src/ariel-os-sensors-gnss-time-ext", features = [
+  "defmt",
+] }
+embassy-futures = { version = "0.1.1" }
+heapless = { version = "0.9.2", features = ["serde"] }
+
+const-str = { version = "0.7.0" }
+
+rand_core = "0.6.4"
+common-types = { path = "../common-types", features = ["minicbor"] }
+linkme = { version = "0.3.35" }
+embedded-io-async = "=0.6.1"
+postcard = { version = "1.1.3", features = ["use-defmt"] }
+
+embassy-sync = { version = "0.7.2" }
+embassy-nrf = { version = "0.9.0" }
+
+
+coap-handler-implementations = "=0.6.1"
+coap-request = "0.2.0-alpha.2"
+coap-request-implementations = "=0.1.0-alpha.4"
+embedded-nal-coap = { version = "=0.1.0-alpha.5" }
+coap-message-utils = { version = "0.3.9" }
+coap-handler = "0.2.0"
+coap-message = "0.3.2"
+coap-numbers = "0.2.8"
+minicbor = "=2.1.3"
+
+nrfxlib-sys = "=2.9.2"
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+  'cfg(context, values(any()))',
+] }

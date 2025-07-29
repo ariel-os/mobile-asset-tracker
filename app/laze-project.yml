@@ -1,0 +1,10 @@
+imports:
+  - git:
+      url: https://github.com/ariel-os/ariel-os
+      tag: v0.3.0
+    dldir: ariel-os
+
+apps:
+  - name: ble-scan-reporter-demo
+    context:
+      - nordic-thingy-91-x-nrf5340-app
