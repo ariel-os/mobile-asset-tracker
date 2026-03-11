@@ -116,13 +116,13 @@ Set the SWD switch (SW2) to the "nRF53" posistion.
 
 ```sh
 cd net
-laze build -b nrf5340dk-net run
+laze build -b nordic-thingy-91-x-nrf5340-net run
 ```
 
 > If probe-rs complains about the core being locked up, append `-- --allow-erase-all` to the command:
 >
 > ```sh
-> laze build -b nrf5340dk-net run -- --allow-erase-all
+> laze build -b nordic-thingy-91-x-nrf5340-net run -- --allow-erase-all
 > ```
 
 Once you see that the program is started (showing `INFO` lines with the text `scanning...`) you can close the debugging session by pressing `ctrl + C` or closing the terminal.
@@ -133,7 +133,7 @@ Set the SWD switch (SW2) to the "nRF53" posistion.
 
 ```sh
 cd app
-laze build -b nrf5340dk run
+laze build -b nordic-thingy-91-x-nrf5340-app run
 ```
 
 #### nRF9151
