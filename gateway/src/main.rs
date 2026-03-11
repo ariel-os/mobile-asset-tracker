@@ -195,9 +195,11 @@ async fn update_location(peripherals: GnssStatusPeripherals) {
 
 #[ariel_os::task(autostart, peripherals)]
 async fn updates(peripherals: UpdatePeripherals) {
-    let device_id: String<TAG_NAME_MAX_LEN> = ariel_os::identity::device_id_bytes()
-        .map(|slice| heapless::format!("{}", Hex(slice)).unwrap())
+    let device_id: String<TAG_NAME_MAX_LEN> = ariel_os::identity::interface_eui48(1)
+        .map(|eui| heapless::format!("{}", eui).unwrap())
         .unwrap_or(String::from_str("unknown").unwrap());
+
+    info!("Device ID: {}", device_id.as_str());
 
     let mut led = Output::new(peripherals.led_green, Level::Low);
     let mut btn1 = Input::builder(peripherals.btn1, Pull::Up)
