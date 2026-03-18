@@ -18,6 +18,7 @@ be POSTed; the text is returned IN ALL CAPS.
 
 import asyncio
 import logging
+import datetime
 from pathlib import Path
 from typing import Any
 import os
@@ -102,7 +103,9 @@ class Register(Resource):
         # This represents the IP and port we can use to contact the device.
         remote = request.remote.uri_base
 
-        print("received ping from device:", remote)
+        timestamp = datetime.datetime.now()
+
+        print(f"received ping from device at {timestamp} : {remote}")
         servers.add(remote)
 
         try:
