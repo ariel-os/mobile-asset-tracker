@@ -7,6 +7,7 @@ use core::{cell::Cell, str::FromStr};
 
 use embassy_futures::join::join;
 use embassy_sync::blocking_mutex::{Mutex, raw::CriticalSectionRawMutex};
+use embedded_io_async::Write;
 use heapless::{String, Vec, index_map::FnvIndexMap};
 use postcard::{
     ser_flavors::{Cobs, Slice},
@@ -24,8 +25,6 @@ use ariel_os::{
     debug::log::{Debug2Format, info, trace, warn},
     time::{Duration, Instant, Timer},
 };
-
-use embedded_io_async::Write;
 
 use common_types::{DetectedTag, MAX_SEEN, TAG_NAME_MAX_LEN, TagsSeen};
 
