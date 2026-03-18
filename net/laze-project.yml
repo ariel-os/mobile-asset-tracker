@@ -12,4 +12,3 @@ apps:
       - nordic-thingy-91-x-nrf5340-net
     selects:
       - ble-central
-      - alloc
