@@ -125,6 +125,8 @@ laze build -b nordic-thingy-91-x-nrf5340-net run
 > laze build -b nordic-thingy-91-x-nrf5340-net run -- --allow-erase-all
 > ```
 
+You can configure the BLE CompleteLocalName prefix to filter for with the environment variable `TAG_PREFIX`. Default is "Ariel".
+
 Once you see that the program is started (showing `INFO` lines with the text `scanning...`) you can close the debugging session by pressing `ctrl + C` or closing the terminal.
 
 #### Application core
@@ -157,6 +159,16 @@ Replace `<endpoint>` with the IP and port of the CoAP proxy (ex: `1.2.3.4:4230`)
 >   If this environment variable is set you also need to set `CONFIG_CELLULAR_PDN_PASSWORD`.
 > - `CONFIG_CELLULAR_PDN_PASSWORD`: The password used to authenticate to the network.
 > - `CONFIG_SIM_PIN`: The code to unlock the SIM.
+
+#### Example tag
+
+To test the firmware, you can use the nrf52840dk as a BLE tag, to do that, clone the [ariel-os](https://github.com/ariel-os/ariel-os) repository and flash the `ble-advertiser` example:
+
+```sh
+laze -C examples/ble-advertiser/ build -b nrf52840dk run
+```
+
+The default advertised CompleteLocalName is "Ariel OS BLE", to change it you can modify the string given to `AdStructure::CompleteLocalName` in `examples/ble-advertiser/src/main.rs`.
 
 ## Usage
 
