@@ -16,6 +16,8 @@ import asyncio
 import json
 import logging
 import os
+import datetime
+
 from pathlib import Path
 from typing import Any
 
@@ -104,7 +106,9 @@ class Register(Resource):
         # This represents the IP and port we can use to contact the device.
         remote = request.remote.uri_base
 
-        logger.info("received ping from device: %s", remote)
+        timestamp = datetime.datetime.now()
+        logger.info("received ping from device: %s at %s", remote, timestamp)
+
         servers.add(remote)
 
         try:
