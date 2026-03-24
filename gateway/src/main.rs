@@ -16,12 +16,11 @@ use embedded_io_async::BufRead;
 use heapless::{String, Vec};
 
 use ariel_os::{
-    asynch::Spawner,
     config::str_from_env,
-    debug::log::{Debug2Format, Hex, debug, error, info, warn},
+    debug::log::{Debug2Format, debug, error, info, warn},
     gpio::{Input, Level, Output, Pull},
-    hal,
-    sensors::{Label, Reading, Sensor},
+    hal::{self, ltem},
+    sensors::{Label, Reading, Sensor, sensor::ReadingError},
     time::{Duration, Instant, Timer},
     uart::Baudrate,
 };
@@ -29,14 +28,13 @@ use ariel_os_sensors_gnss_time_ext::GnssTimeExt as _;
 
 use common_types::{DetectedTag, GatewayUpdate, Location, TAG_NAME_MAX_LEN, TagsSeen};
 
-use crate::pins::{GnssStatusPeripherals, UartPeripherals, UpdatePeripherals};
+use crate::pins::{UartPeripherals, UpdatePeripherals};
 
 // Test server : 65.108.193.50:4230
 const COAP_ENDPOINT: &str = str_from_env!("COAP_ENDPOINT", "The CoAP endpoint to connect to.");
 
 static SEEN: Mutex<CriticalSectionRawMutex, (TagsSeen, Instant)> =
     Mutex::new((TagsSeen { tags: Vec::new() }, Instant::from_ticks(0)));
-static CURRENT_LOCATION: Mutex<CriticalSectionRawMutex, Option<Location>> = Mutex::new(None);
 
 static LAST_UPDATE: blocking_mutex::Mutex<CriticalSectionRawMutex, RefCell<Option<GatewayUpdate>>> =
     blocking_mutex::Mutex::new(RefCell::new(None));
@@ -101,127 +99,193 @@ async fn uart_receive(peripherals: UartPeripherals) {
     }
 }
 
-#[ariel_os::task(autostart, peripherals)]
-async fn update_location(peripherals: GnssStatusPeripherals) {
-    let mut led_blue = Output::new(peripherals.led_blue, Level::Low);
-    let mut led_red = Output::new(peripherals.led_red, Level::Low);
-    led_red.set_high();
+#[ariel_os::task(autostart)]
+async fn gnss_runner() {
+    // Single shot, give it 6 minutes to get a fix
+    sensors::NRF91_GNSS
+        .init(ariel_os_nrf91_gnss::config::Config {
+            operation_mode: ariel_os_nrf91_gnss::config::GnssOperationMode::SingleShot(360),
+        })
+        .await;
+    sensors::nrf91_gnss_runner().await;
+}
 
-    let spawner = unsafe { Spawner::for_current_executor().await };
-    unsafe {
-        nrfxlib_sys::nrf_modem_gnss_prio_mode_enable();
+enum UpdateLocationError {
+    ReadingError(ReadingError),
+    InvalidFix(Location),
+}
+
+async fn get_location() -> Result<Location, UpdateLocationError> {
+    if let Err(e) = sensors::NRF91_GNSS.trigger_measurement() {
+        warn!("Failed to trigger GNSS measurement: {:?}", e);
+    }
+    let samples = sensors::NRF91_GNSS
+        .wait_for_reading()
+        .await
+        .map_err(UpdateLocationError::ReadingError)?;
+
+    debug!("Got GNSS reading: {:?}", defmt::Debug2Format(&samples));
+
+    let mut location = Location {
+        altitude: 0.0,
+        latitude: 0.0,
+        longitude: 0.0,
+        time_of_fix: 0,
+
+        // TODO: populate these values
+        heading: 0.0,
+        horizontal_speed: 0.0,
+        vertical_spedd: 0.0,
+    };
+    let mut found_altitude = false;
+    let mut found_latitude = false;
+    let mut found_longitude = false;
+
+    let found_timestamp = match samples.time_of_fix_timestamp() {
+        Ok(t) => {
+            location.time_of_fix = t as u64;
+            true
+        }
+        Err(e) => {
+            warn!("Failed to get time of fix: {:?}", e);
+            false
+        }
+    };
+
+    for (channel, sample) in samples.samples() {
+        match channel.label() {
+            Label::Altitude => {
+                if let Ok(value) = sample.value() {
+                    debug!("altitude: {}", value);
+                    location.altitude =
+                        value as f32 / 10i32.pow((-channel.scaling()) as u32) as f32;
+                    found_altitude = true;
+                }
+            }
+            Label::Latitude => {
+                if let Ok(value) = sample.value() {
+                    location.latitude =
+                        value as f32 / 10i32.pow((-channel.scaling()) as u32) as f32;
+                    found_latitude = true;
+                }
+            }
+            Label::Longitude => {
+                if let Ok(value) = sample.value() {
+                    location.longitude =
+                        value as f32 / 10i32.pow((-channel.scaling()) as u32) as f32;
+                    found_longitude = true;
+                }
+            }
+            _ => {}
+        }
     }
 
-    sensors::NRF91_GNSS
-        .init(ariel_os_nrf91_gnss::config::Config::default())
-        .await;
-    spawner.spawn(sensors::nrf91_gnss_runner()).unwrap();
-
-    loop {
-        if let Err(e) = sensors::NRF91_GNSS.trigger_measurement() {
-            warn!("Failed to trigger GNSS measurement: {:?}", e);
-        }
-        let reading = sensors::NRF91_GNSS.wait_for_reading().await;
-
-        debug!("Got GNSS reading: {:?}", defmt::Debug2Format(&reading));
-
-        if let Ok(samples) = reading {
-            let mut location = Location {
-                altitude: 0.0,
-                latitude: 0.0,
-                longitude: 0.0,
-                time_of_fix: 0,
-
-                // TODO: populate these values
-                heading: 0.0,
-                horizontal_speed: 0.0,
-                vertical_spedd: 0.0,
-            };
-            let mut found_altitude = false;
-            let mut found_latitude = false;
-            let mut found_longitude = false;
-
-            let found_timestamp = match samples.time_of_fix_timestamp() {
-                Ok(t) => {
-                    location.time_of_fix = t as u64;
-                    true
-                }
-                Err(e) => {
-                    warn!("Failed to get time of fix: {:?}", e);
-                    false
-                }
-            };
-
-            for (channel, sample) in samples.samples() {
-                match channel.label() {
-                    Label::Altitude => {
-                        if let Ok(value) = sample.value() {
-                            debug!("altitude: {}", value);
-                            location.altitude =
-                                value as f32 / 10i32.pow((-channel.scaling()) as u32) as f32;
-                            found_altitude = true;
-                        }
-                    }
-                    Label::Latitude => {
-                        if let Ok(value) = sample.value() {
-                            location.latitude =
-                                value as f32 / 10i32.pow((-channel.scaling()) as u32) as f32;
-                            found_latitude = true;
-                        }
-                    }
-                    Label::Longitude => {
-                        if let Ok(value) = sample.value() {
-                            location.longitude =
-                                value as f32 / 10i32.pow((-channel.scaling()) as u32) as f32;
-                            found_longitude = true;
-                        }
-                    }
-                    _ => {}
-                }
-            }
-
-            if found_altitude && found_latitude && found_longitude && found_timestamp {
-                led_red.set_low();
-                led_blue.set_high();
-                debug!("updating location");
-                let mut loc_lock = CURRENT_LOCATION.lock().await;
-                *loc_lock = Some(location);
-            } else {
-                led_blue.set_low();
-            }
-        }
+    if found_altitude && found_latitude && found_longitude && found_timestamp {
+        Ok(location)
+    } else {
+        Err(UpdateLocationError::InvalidFix(location))
     }
 }
 
 #[ariel_os::task(autostart, peripherals)]
 async fn updates(peripherals: UpdatePeripherals) {
+    let stack = ariel_os::net::network_stack().await.unwrap();
+    let mut last_update_timestamp = Instant::from_ticks(0);
+
     let device_id: String<TAG_NAME_MAX_LEN> = ariel_os::identity::interface_eui48(1)
         .map(|eui| heapless::format!("{}", eui).unwrap())
         .unwrap_or(String::from_str("unknown").unwrap());
 
     info!("Device ID: {}", device_id.as_str());
 
-    let mut led = Output::new(peripherals.led_green, Level::Low);
+    let mut led_green = Output::new(peripherals.led_green, Level::Low);
     let mut btn1 = Input::builder(peripherals.btn1, Pull::Up)
         .build_with_interrupt()
         .unwrap();
-    let mut last_update_timestamp = Instant::now();
+    let mut led_blue = Output::new(peripherals.led_blue, Level::Low);
+    let mut led_red = Output::new(peripherals.led_red, Level::Low);
+
+    led_red.set_high();
+    led_green.set_high();
+    led_blue.set_high();
+    Timer::after_millis(500).await;
+    led_red.set_high();
+    led_green.set_low();
+    led_blue.set_high();
+    Timer::after_millis(500).await;
+    led_red.set_low();
+    led_green.set_high();
+    led_blue.set_high();
+    Timer::after_millis(500).await;
+
+    ltem::disable();
 
     loop {
         // Wait for the button being pressed or 60s, whichever comes first.
-        info!("Waiting 60s before sending next update...");
+        info!("Waiting before sending next update...");
 
-        led.set_low();
+        // Showing blue: waiting
+        led_red.set_low();
+        led_green.set_low();
+        led_blue.set_high();
         let _ = embassy_futures::select::select(btn1.wait_for_low(), Timer::after_secs(360)).await;
-        led.set_high();
+
         // Prevent sending updates too frequently
         if last_update_timestamp.elapsed() < Duration::from_secs(10) {
             warn!("Update skipped to avoid sending updates too frequently");
             continue;
         }
 
-        info!("Updating status...");
-        let location = { *CURRENT_LOCATION.lock().await };
+        // Make sure LTEM is disabled
+        ltem::disable();
+
+        // Now cyan/light blue, GNSS aquisition in progress
+        led_red.set_low();
+        led_green.set_high();
+        led_blue.set_high();
+
+        info!("Requesting GNSS location");
+
+        let mut location;
+        loop {
+            location = match get_location().await {
+                Ok(loc) => Some(loc),
+                Err(UpdateLocationError::InvalidFix(loc)) => {
+                    warn!("Invalid fix : {:?}", Debug2Format(&loc));
+                    None
+                }
+                Err(UpdateLocationError::ReadingError(e)) => {
+                    error!("Readin error: {:?}", e);
+                    None
+                }
+            };
+            if location.is_some() {
+                break;
+            } else {
+                // Color is now yellow, GNSS fix has failed at least once.
+                led_red.set_high();
+                led_green.set_high();
+                led_blue.set_low();
+            }
+        }
+
+        info!("Enabling cellular networking");
+
+        // White, enabling LTE-M
+        led_red.set_high();
+        led_green.set_high();
+        led_blue.set_high();
+
+        ltem::enable();
+        stack.wait_link_up().await;
+
+        info!("Cellular networking up");
+
+        // Green: CoAP communication in progress
+        led_red.set_low();
+        led_green.set_high();
+        led_blue.set_low();
+
         debug!("Getting seen list");
 
         let (addresses_seen, decode_instant) = { SEEN.lock().await.clone() };
@@ -257,6 +321,11 @@ async fn updates(peripherals: UpdatePeripherals) {
 
         // ping the RD
         register_to_rd().await;
+
+        // Leave the connection up for a bit, then disable the LTE-M
+        Timer::after_secs(10).await;
+        ltem::disable();
+        stack.wait_link_down().await;
     }
 }
 

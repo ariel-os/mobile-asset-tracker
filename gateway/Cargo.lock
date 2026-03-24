@@ -2403,7 +2403,7 @@ dependencies = [
 [[package]]
 name = "nrf-modem"
 version = "0.10.1"
-source = "git+https://github.com/nponsard/nrf-modem?rev=bdb18f493b9f09e08cde8b1c3584535a7d013431#bdb18f493b9f09e08cde8b1c3584535a7d013431"
+source = "git+https://github.com/nponsard/nrf-modem?rev=095e72c392a12ee9c16a5acfce1c987df08fde67#095e72c392a12ee9c16a5acfce1c987df08fde67"
 dependencies = [
  "arrayvec",
  "at-commands",
