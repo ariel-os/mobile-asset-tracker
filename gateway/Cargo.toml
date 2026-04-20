@@ -12,9 +12,10 @@ ariel-os = { path = "build/imports/ariel-os/src/ariel-os", features = [
   "uart",
   "sensors",
   "external-interrupts",
+  "i2c",
 ] }
 ariel-os-boards = { path = "build/imports/ariel-os/src/ariel-os-boards" }
-ariel-os-nrf91-gnss = { path = "build/imports/ariel-os/src/sensors/ariel-os-nrf91-gnss", features = [
+ariel-os-sensor-nrf91-gnss = { path = "build/imports/ariel-os/src/sensors/ariel-os-sensor-nrf91-gnss", features = [
   "defmt",
 ] }
 ariel-os-sensors-gnss-time-ext = { path = "build/imports/ariel-os/src/ariel-os-sensors-gnss-time-ext", features = [
@@ -45,7 +46,6 @@ coap-message = "0.3.2"
 coap-numbers = "0.2.8"
 minicbor = "=2.1.3"
 
-nrfxlib-sys = "=3.0.3+3.0.2"
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
   'cfg(context, values(any()))',
