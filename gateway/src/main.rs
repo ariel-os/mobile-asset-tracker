@@ -1,5 +1,6 @@
 #![no_main]
 #![no_std]
+mod board;
 mod pins;
 mod sensors;
 
@@ -17,9 +18,9 @@ use heapless::{String, Vec};
 
 use ariel_os::{
     config::str_from_env,
-    debug::log::{Debug2Format, debug, error, info, warn},
     gpio::{Input, Level, Output, Pull},
     hal::{self, ltem},
+    log::{Debug2Format, debug, error, info, warn},
     sensors::{Label, Reading, Sensor, sensor::ReadingError},
     time::{Duration, Instant, Timer},
     uart::Baudrate,
@@ -102,10 +103,12 @@ async fn uart_receive(peripherals: UartPeripherals) {
 #[ariel_os::task(autostart)]
 async fn gnss_runner() {
     // Single shot, give it 6 minutes to get a fix
+
+   let mut config = ariel_os_sensor_nrf91_gnss::config::Config::default();
+   config.operation_mode =  ariel_os_sensor_nrf91_gnss::config::GnssOperationMode::SingleShot(360);
+
     sensors::NRF91_GNSS
-        .init(ariel_os_nrf91_gnss::config::Config {
-            operation_mode: ariel_os_nrf91_gnss::config::GnssOperationMode::SingleShot(360),
-        })
+        .init(config)
         .await;
     sensors::nrf91_gnss_runner().await;
 }

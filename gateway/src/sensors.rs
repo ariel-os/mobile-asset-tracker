@@ -1,5 +1,5 @@
-pub static NRF91_GNSS: ariel_os_nrf91_gnss::Nrf91Gnss =
-    const { ariel_os_nrf91_gnss::Nrf91Gnss::new(Some("Gnss")) };
+pub static NRF91_GNSS: ariel_os_sensor_nrf91_gnss::Nrf91Gnss =
+    const { ariel_os_sensor_nrf91_gnss::Nrf91Gnss::new(Some("Gnss")) };
 #[ariel_os::reexports::linkme::distributed_slice(ariel_os::sensors::SENSOR_REFS)]
 static NRF91_GNSS_REF: &'static dyn ariel_os::sensors::Sensor = &NRF91_GNSS;
 
