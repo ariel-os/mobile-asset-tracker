@@ -78,21 +78,20 @@ async fn automatic_cleanup() {
 }
 
 #[ariel_os::task(autostart, peripherals)]
-async fn send_scan_data(peripherals: pins::Peripherals) {
+async fn send_scan_data(mut peripherals: pins::Peripherals) {
     let mut config = uarte::Config::default();
     config.parity = uarte::Parity::EXCLUDED;
     config.baudrate = uarte::Baudrate::BAUD115200;
 
-    let mut uart = uarte::Uarte::new(
-        peripherals.serial,
-        peripherals.uart_rx,
-        peripherals.uart_tx,
-        Irqs,
-        config,
-    );
-
     loop {
         Timer::after_secs(2).await;
+        let mut uart = uarte::Uarte::new(
+            peripherals.serial.reborrow(),
+            peripherals.uart_rx.reborrow(),
+            peripherals.uart_tx.reborrow(),
+            Irqs,
+            config.clone(),
+        );
         info!("Sending scan data...");
         let seen = {
             SEEN.lock(|cell| {
