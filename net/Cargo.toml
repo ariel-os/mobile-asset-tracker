@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ariel-os = { path = "build/imports/ariel-os/src/ariel-os", features = ["time"] }
+ariel-os = { path = "build/imports/ariel-os/src/ariel-os", features = ["time", "external-interrupts"] }
 ariel-os-boards = { path = "build/imports/ariel-os/src/ariel-os-boards" }
 embassy-futures = { version = "0.1.1" }
 heapless = "0.9.2"
