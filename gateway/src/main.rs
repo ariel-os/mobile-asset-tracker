@@ -30,7 +30,7 @@ use reqwless::{
 use ariel_os::{
     config::str_from_env,
     gpio::{Input, Level, Output, Pull},
-    hal::{self, ltem},
+    hal::{self, ltem, uart::Uart},
     log::{Debug2Format, debug, error, info, warn},
     sensors::{Label, Reading, Sensor, sensor::ReadingError},
     time::{Duration, Instant, Timer},
@@ -42,7 +42,7 @@ use ariel_os_sensors_gnss_time_ext::GnssTimeExt as _;
 use common_types::{DetectedTag, GatewayUpdate, Location, TAG_NAME_MAX_LEN, TagsSeen};
 // use minicbor::data;
 
-use crate::pins::{UartPeripherals, UpdatePeripherals};
+use crate::pins::Peripherals;
 
 // // Test server : 65.108.193.50:4230
 // const COAP_ENDPOINT: &str = str_from_env!("COAP_ENDPOINT", "The CoAP endpoint to connect to.");
@@ -63,28 +63,38 @@ const MAX_CONCURRENT_CONNECTIONS: usize = 2;
 const KUZZLE_ENDPOINT: &str = str_from_env!("KUZZLE_ENDPOINT", "Kuzzle endpoint to connect to.");
 const KUZZLE_TOKEN: &str = str_from_env!("KUZZLE_TOKEN", "Kuzzle token.");
 
-static SEEN: Mutex<CriticalSectionRawMutex, (TagsSeen, Instant)> =
-    Mutex::new((TagsSeen { tags: Vec::new() }, Instant::from_ticks(0)));
-
 static LAST_UPDATE: blocking_mutex::Mutex<CriticalSectionRawMutex, RefCell<Option<GatewayUpdate>>> =
     blocking_mutex::Mutex::new(RefCell::new(None));
 
-#[ariel_os::task(autostart, peripherals)]
-async fn uart_receive(peripherals: UartPeripherals) {
+async fn uart_receive<'a, REQ, TX, RX>(
+    request_pin: Peri<'a, REQ>,
+    uart_rx: Peri<'a, RX>,
+    uart_tx: Peri<'a, TX>,
+) -> TagsSeen
+where
+    REQ: PeripheralType + Pin,
+    TX: PeripheralType + Pin,
+    RX: PeripheralType + Pin,
+{
     let mut config = hal::uart::Config::default();
     config.baudrate = Baudrate::_115200;
+
+    let mut request = Output::new(request_pin, Level::Low);
 
     let mut rx_buf = [0u8; 32];
     let mut tx_buf = [0u8; 1];
 
-    let mut uart = pins::ReceiverUart::new(
-        peripherals.uart_rx,
-        peripherals.uart_tx,
-        &mut rx_buf,
-        &mut tx_buf,
-        config,
-    )
-    .expect("Invalid UART configuration");
+    let uart = pins::ReceiverUart::new(uart_rx, uart_tx, &mut rx_buf, &mut tx_buf, config)
+        .expect("Invalid UART configuration");
+    request.set_high();
+
+    let tags = wait_for_decoded_message(uart).await;
+
+    request.set_low();
+    tags
+}
+
+async fn wait_for_decoded_message(mut uart: Uart<'_>) -> TagsSeen {
     let mut packet_buffer: Vec<u8, 8192> = Vec::new();
 
     loop {
@@ -113,9 +123,8 @@ async fn uart_receive(peripherals: UartPeripherals) {
 
             match postcard::from_bytes_cobs::<TagsSeen>(packet) {
                 Ok(decoded) => {
-                    debug!("Decoded packet");
-                    let mut seen = SEEN.lock().await;
-                    *seen = (decoded, Instant::now())
+                    debug!("Decoded packet of {} bytes", separator);
+                    return decoded;
                 }
                 Err(e) => {
                     warn!("Failed to decode packet: {:?}", e);
@@ -133,12 +142,10 @@ async fn uart_receive(peripherals: UartPeripherals) {
 async fn gnss_runner() {
     // Single shot, give it 6 minutes to get a fix
 
-   let mut config = ariel_os_sensor_nrf91_gnss::config::Config::default();
-   config.operation_mode =  ariel_os_sensor_nrf91_gnss::config::GnssOperationMode::SingleShot(360);
+    let mut config = ariel_os_sensor_nrf91_gnss::config::Config::default();
+    config.operation_mode = ariel_os_sensor_nrf91_gnss::config::GnssOperationMode::SingleShot(360);
 
-    sensors::NRF91_GNSS
-        .init(config)
-        .await;
+    sensors::NRF91_GNSS.init(config).await;
     sensors::nrf91_gnss_runner().await;
 }
 
@@ -233,7 +240,7 @@ async fn get_location() -> Result<Location, UpdateLocationError> {
 }
 
 #[ariel_os::task(autostart, peripherals)]
-async fn updates(peripherals: UpdatePeripherals) {
+async fn updates(mut peripherals: Peripherals) {
     let stack = ariel_os::net::network_stack().await.unwrap();
 
     // initialisation du client HTTP
@@ -262,12 +269,12 @@ async fn updates(peripherals: UpdatePeripherals) {
 
     info!("Device ID: {}", device_id.as_str());
 
-    let mut led_green = Output::new(peripherals.led_green, Level::Low);
-    let mut btn1 = Input::builder(peripherals.btn1, Pull::Up)
+    let mut led_green = Output::new(peripherals.user_interaction.led_green, Level::Low);
+    let mut btn1 = Input::builder(peripherals.user_interaction.btn1, Pull::Up)
         .build_with_interrupt()
         .unwrap();
-    let mut led_blue = Output::new(peripherals.led_blue, Level::Low);
-    let mut led_red = Output::new(peripherals.led_red, Level::Low);
+    let mut led_blue = Output::new(peripherals.user_interaction.led_blue, Level::Low);
+    let mut led_red = Output::new(peripherals.user_interaction.led_red, Level::Low);
 
     led_red.set_high();
     led_green.set_high();
@@ -333,6 +340,19 @@ async fn updates(peripherals: UpdatePeripherals) {
             }
         }
 
+        // Purple, receiving BLE devices from nRF5340
+        led_red.set_high();
+        led_green.set_low();
+        led_blue.set_high();
+
+        let addresses_seen = uart_receive(
+            peripherals.uart.request.reborrow(),
+            peripherals.uart.uart_rx.reborrow(),
+            peripherals.uart.uart_tx.reborrow(),
+        )
+        .await;
+        let decode_instant = Instant::now();
+
         info!("Enabling cellular networking");
 
         // White, enabling LTE-M
@@ -351,8 +371,6 @@ async fn updates(peripherals: UpdatePeripherals) {
         led_blue.set_low();
 
         debug!("Getting seen list");
-
-        let (addresses_seen, decode_instant) = { SEEN.lock().await.clone() };
 
         let decode_age_secs =
             u16::try_from(Instant::now().duration_since(decode_instant).as_secs())
