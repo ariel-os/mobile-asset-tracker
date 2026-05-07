@@ -173,8 +173,14 @@ async fn run_scanner() {
         let config = ScanConfig::<'_> {
             active: true,
             phys: PhySet::M1,
-            interval: Duration::from_secs(1),
-            window: Duration::from_secs(1),
+
+            // There's an issue with the Duration https://github.com/embassy-rs/bt-hci/pull/74
+            // Workaround is to multiply the value by 16.
+
+            // Max scan interval in the BLE spec is 10s.
+            interval: Duration::from_secs(10 * 16),
+            // Beacon advertising frequency is between 1Hz and 10Hz, staying up makes sure we can catch at least one advertisement.
+            window: Duration::from_secs(2 * 16),
             ..Default::default()
         };
         let mut _session = scanner.scan(&config).await.unwrap();
