@@ -10,15 +10,15 @@ async fn main() {
     let gpio0 = embassy_nrf::pac::P0;
     let gpio1 = embassy_nrf::pac::P1;
 
+    // P0_30 : GPIO1
     gpio0
-        .pin_cnf(29)
+        .pin_cnf(30)
         .write(|w| w.set_mcusel(Mcusel::NETWORK_MCU));
-    gpio1
-        .pin_cnf(4)
-        .write(|w| w.set_mcusel(Mcusel::NETWORK_MCU));
+    // P1_06 : VCOM1 RX
     gpio1
         .pin_cnf(6)
         .write(|w| w.set_mcusel(Mcusel::NETWORK_MCU));
+    // P1_06 : VCOM1 TX
     gpio1
         .pin_cnf(8)
         .write(|w| w.set_mcusel(Mcusel::NETWORK_MCU));
