@@ -1,13 +1,15 @@
 use ariel_os::hal::peripherals;
 
-// VCOM1
 #[cfg(context = "nordic-thingy-91-x-nrf5340-net")]
 ariel_os::hal::define_peripherals!(Peripherals {
+    // VCOM1 TX
     uart_tx: P1_08,
+    // VCOM1 RX
     uart_rx: P1_06,
+    // GPIO1
+    request: P0_30,
     serial: SERIAL0,
 });
-
 
 #[cfg(context = "nrf52dk")]
 ariel_os::hal::define_peripherals!(Peripherals {
@@ -15,7 +17,6 @@ ariel_os::hal::define_peripherals!(Peripherals {
     uart_rx: P0_01,
     serial: UARTE0,
 });
-
 
 #[cfg(context = "nrf52840dk")]
 ariel_os::hal::define_peripherals!(Peripherals {
