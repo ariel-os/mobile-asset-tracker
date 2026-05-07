@@ -78,21 +78,20 @@ async fn automatic_cleanup() {
 }
 
 #[ariel_os::task(autostart, peripherals)]
-async fn send_scan_data(peripherals: pins::Peripherals) {
+async fn send_scan_data(mut peripherals: pins::Peripherals) {
     let mut config = uarte::Config::default();
     config.parity = uarte::Parity::EXCLUDED;
     config.baudrate = uarte::Baudrate::BAUD115200;
 
-    let mut uart = uarte::Uarte::new(
-        peripherals.serial,
-        peripherals.uart_rx,
-        peripherals.uart_tx,
-        Irqs,
-        config,
-    );
-
     loop {
         Timer::after_secs(2).await;
+        let mut uart = uarte::Uarte::new(
+            peripherals.serial.reborrow(),
+            peripherals.uart_rx.reborrow(),
+            peripherals.uart_tx.reborrow(),
+            Irqs,
+            config.clone(),
+        );
         info!("Sending scan data...");
         let seen = {
             SEEN.lock(|cell| {
@@ -166,8 +165,14 @@ async fn run_scanner() {
         let config = ScanConfig::<'_> {
             active: true,
             phys: PhySet::M1,
-            interval: Duration::from_secs(1),
-            window: Duration::from_secs(1),
+
+            // There's an issue with the Duration https://github.com/embassy-rs/bt-hci/pull/74
+            // Workaround is to multiply the value by 16.
+
+            // Max scan interval in the BLE spec is 10s.
+            interval: Duration::from_secs(10 * 16),
+            // Beacon advertising frequency is between 1Hz and 10Hz, staying up makes sure we can catch at least one advertisement.
+            window: Duration::from_secs(2 * 16),
             ..Default::default()
         };
         let mut _session = scanner.scan(&config).await.unwrap();
