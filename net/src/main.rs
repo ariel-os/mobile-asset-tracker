@@ -22,7 +22,7 @@ use trouble_host::{
 
 use ariel_os::{
     config::str_from_env_or,
-    debug::log::{Debug2Format, info, trace, warn},
+    log::{Debug2Format, info, trace, warn},
     time::{Duration, Instant, Timer},
 };
 
