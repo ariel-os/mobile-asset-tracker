@@ -23,7 +23,7 @@ use trouble_host::{
 use ariel_os::{
     config::str_from_env_or,
     gpio::{Input, Pull},
-    log::{Debug2Format, info, trace, warn},
+    log::{Debug2Format, debug, info, trace, warn},
     time::{Duration, Instant, Timer},
 };
 
@@ -186,8 +186,8 @@ async fn run_scanner() {
         let mut _session = scanner.scan(&config).await.unwrap();
         // Scan forever
         loop {
-            info!("scanning...");
-            Timer::after_secs(1).await;
+            debug!("scanning...");
+            Timer::after_secs(1000).await;
         }
     })
     .await;
