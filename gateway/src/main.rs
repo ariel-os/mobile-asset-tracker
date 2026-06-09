@@ -117,7 +117,20 @@ enum UpdateLocationError {
     ReadingError(ReadingError),
     InvalidFix(Location),
 }
+#[cfg(feature = "fake-position")]
+async fn get_location() -> Result<Location, UpdateLocationError> {
+    Ok(Location {
+        latitude: 0f32,
+        longitude: 0f32,
+        altitude: 0f32,
+        heading: 0f32,
+        horizontal_speed: 0f32,
+        vertical_speed: 0f32,
+        time_of_fix: 1781008373u64,
+    })
+}
 
+#[cfg(not(feature = "fake-position"))]
 async fn get_location() -> Result<Location, UpdateLocationError> {
     if let Err(e) = sensors::NRF91_GNSS.trigger_measurement() {
         warn!("Failed to trigger GNSS measurement: {:?}", e);
