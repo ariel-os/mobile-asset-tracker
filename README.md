@@ -41,7 +41,7 @@ graph TD;
 The network core of the nRF5340 MCU is scanning for BLE packets and sending them to the nRF9151 SiP using UART (VCOM1).
 
 One task scans for BLE advertisement packets and store them in a list.  
-The second task reads this list and writes it into the UART channel every 2 seconds. Using `postcard` encoding and applying `COBS` on top. Once the data is sent the list of scanned devices is cleared.
+The second task reads this list and writes it into the UART when asked by the nRF9151 (using the GPIO1 pin). Using `postcard` encoding and applying `COBS` on top. Once the data is sent the list of scanned devices is cleared.
 
 ### nRF5340 Application core
 
