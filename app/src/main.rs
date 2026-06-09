@@ -1,7 +1,7 @@
 #![no_main]
 #![no_std]
 
-use ariel_os::{debug::log::info, time::Timer};
+use ariel_os::{log::info, time::Timer};
 use embassy_nrf::pac::gpio::vals::Mcusel;
 
 #[ariel_os::task(autostart)]
