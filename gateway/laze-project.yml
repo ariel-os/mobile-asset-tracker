@@ -17,3 +17,10 @@ apps:
       - coap-client
       - coap-server
       - coap-server-config-storage
+
+modules:
+  - name: fake-position
+    env:
+      global:
+        FEATURES:
+          - fake-position
