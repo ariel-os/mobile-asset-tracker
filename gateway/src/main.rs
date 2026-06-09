@@ -138,7 +138,7 @@ async fn get_location() -> Result<Location, UpdateLocationError> {
         // TODO: populate these values
         heading: 0.0,
         horizontal_speed: 0.0,
-        vertical_spedd: 0.0,
+        vertical_speed: 0.0,
     };
     let mut found_altitude = false;
     let mut found_latitude = false;
