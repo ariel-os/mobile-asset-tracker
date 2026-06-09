@@ -59,8 +59,12 @@ It is responsible for aggregating the information and sending it to the server.
 
 - A first task reads the UART (VCOM1) channel, decodes and stores the BLE devices listed by the nRF5340.
 - A second task fetches the new position (latitude, longitude and altitude) reported by the GNSS sensor (new value approximately every second). If the position returned is valid it will be saved in a shared variable as the last know position.
-- The third task sets up LTE-M networking and pings the CoAP proxy when new updates are available.
-- A fourth task handles the CoAP requests.
+- One tasks executes these actions sequencially:
+  1. Power up the GNSS and get the current location using GNSS
+  2. Request the latest list of BLE devices from the nRF5340 (GPIO1 + UART)
+  3. Prepare the payload to send
+  4. Power up LTE-M and send a ping to the proxy, keeping LTE-M active for 10 seconds so the proxy can do the CoAP request
+- A second task handles the CoAP requests
 
 ### The proxy
 
