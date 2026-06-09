@@ -35,7 +35,7 @@ pub struct Location {
     pub horizontal_speed: f32,
     #[serde(rename = "verticalSpeed")]
     #[cfg_attr(feature = "minicbor", n(5))]
-    pub vertical_spedd: f32,
+    pub vertical_speed: f32,
     #[serde(rename = "timeOfFix")]
     #[cfg_attr(feature = "minicbor", n(6))]
     pub time_of_fix: u64,
