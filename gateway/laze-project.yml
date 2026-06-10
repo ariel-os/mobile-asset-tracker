@@ -1,8 +1,8 @@
 imports:
   - git:
       url: https://github.com/nponsard/ariel-os
-      # branch: laposte-demo-v0.4.1
-      commit: c0520d9e10579df0d2b488e26ef0c34e8d4a0aae
+      # branch: laposte-demo-v0.5.1
+      commit: 9f5304ec7de700b113643ce9d695bc8a64f2bf4b
     dldir: ariel-os
 
 apps:
