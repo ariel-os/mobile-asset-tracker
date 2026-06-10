@@ -144,6 +144,7 @@ async fn gnss_runner() {
 
     let mut config = ariel_os_sensor_nrf91_gnss::config::Config::default();
     config.operation_mode = ariel_os_sensor_nrf91_gnss::config::GnssOperationMode::SingleShot(360);
+    config.power_mode = ariel_os_sensor_nrf91_gnss::config::GnssPowerSaveMode::DutyCycling;
 
     sensors::NRF91_GNSS.init(config).await;
     sensors::nrf91_gnss_runner().await;
