@@ -52,3 +52,21 @@ After setting the configuration, you can run the proxy using:
 ```sh
 pipx run server.py
 ```
+
+## Docker image
+
+A docker image can be built using
+
+```sh
+docker build . -t <tag>
+```
+
+You need to set `BACKEND_ENDPOINT` and `BEARER_TOKEN` (for kuzzle backend) as environment variable and provide the CoAP secrets as files mounted in the container.
+
+Indicate where the `server.diag` file is by setting the `SERVER_DIAG_FILE` env variable. Inside this file the path to `server.cosekey` need to be absolute. You can change it to `/etc/coap-secret/server.cosekey` using
+
+```sh
+sed -i 's/server.cosekey/\/etc\/coap-secret\/server.cosekey/' server.diag
+```
+
+Example deployments are available in the `deployments` directory.
