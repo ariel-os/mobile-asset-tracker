@@ -31,6 +31,7 @@ use crate::pins::Peripherals;
 
 // Test server : 65.108.193.50:4230
 const COAP_ENDPOINT: &str = str_from_env!("COAP_ENDPOINT", "The CoAP endpoint to connect to.");
+const TIME_BETWEEN_UPDATES: Duration = Duration::from_secs(360);
 
 static LAST_UPDATE: blocking_mutex::Mutex<CriticalSectionRawMutex, RefCell<Option<GatewayUpdate>>> =
     blocking_mutex::Mutex::new(RefCell::new(None));
@@ -250,7 +251,17 @@ async fn updates(mut peripherals: Peripherals) {
         led_red.set_low();
         led_green.set_low();
         led_blue.set_high();
-        let _ = embassy_futures::select::select(btn1.wait_for_low(), Timer::after_secs(360)).await;
+
+        // Try to send an update every TIME_BETWEEN_UPDATES, waiting for a gnss fix may make the duration between updates longer.
+
+        let duration_to_wait = TIME_BETWEEN_UPDATES
+            .checked_sub(last_update_timestamp.elapsed())
+            .unwrap_or(Duration::from_ticks(0));
+
+        if duration_to_wait.as_ticks() > 0 {
+            let _ =
+                embassy_futures::select::select(btn1.wait_for_low(), Timer::after_secs(360)).await;
+        }
 
         // Prevent sending updates too frequently
         if last_update_timestamp.elapsed() < Duration::from_secs(10) {
@@ -350,10 +361,11 @@ async fn updates(mut peripherals: Peripherals) {
 
         // replace the last update
         let _ = LAST_UPDATE.lock(|s| s.borrow_mut().replace(update));
-        last_update_timestamp = Instant::now();
 
         // ping the RD
         register_to_rd().await;
+
+        last_update_timestamp = Instant::now();
 
         // Leave the connection up for a bit, then disable the LTE-M
         Timer::after_secs(10).await;
