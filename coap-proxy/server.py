@@ -13,23 +13,21 @@
 # ///
 
 import asyncio
+import json
 import logging
+import os
 from pathlib import Path
 from typing import Any
-import os
-from dotenv import load_dotenv
 
-
-import json
-import aiohttp
-
-import cbor2
 import aiocoap
-from aiocoap import Message, GET, Context
-from aiocoap.resource import Resource, Site
+import aiohttp
+import cbor2
+from aiocoap import GET, Context, Message
 from aiocoap.credentials import CredentialsMap
-from aiocoap.oscore_sitewrapper import OscoreSiteWrapper
 from aiocoap.numbers.codes import Code
+from aiocoap.oscore_sitewrapper import OscoreSiteWrapper
+from aiocoap.resource import Resource, Site
+from dotenv import load_dotenv
 
 servers: set[str] = set()
 
@@ -38,6 +36,11 @@ load_dotenv()
 BACKEND_ENDPOINT = os.getenv("BACKEND_ENDPOINT")
 BEARER_TOKEN = os.getenv("BEARER_TOKEN")
 PORT = 4230
+SERVER_DIAG_FILE = "server.diag"
+
+env_server_diag_file = os.getenv("SERVER_DIAG_FILE")
+if env_server_diag_file is not None:
+    SERVER_DIAG_FILE = env_server_diag_file
 
 env_port = os.getenv("PORT")
 
@@ -124,7 +127,7 @@ class Register(Resource):
 # background_tasks = set()
 context = None
 
-server_credentials_file = Path("server.diag")
+server_credentials_file = Path(SERVER_DIAG_FILE)
 credentials = dict()
 
 try:
