@@ -19,12 +19,13 @@ diagfile = "server.diag"
 # keyfile = "testkey.cosekey"
 # diagfile = "testdiag.diag"
 
-kid = "1a"
+# has to be bytes
+kid = b'\x1a'
 
 key = edhoc.CoseKeyForEdhoc.generate(keyfile)
 
 
-public = key.as_ccs(kid, "")
+public = key.as_ccs(kid, None)
 credentials = {
     "coap://*": {
         "edhoc-oscore": {
