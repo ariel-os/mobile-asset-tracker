@@ -37,7 +37,7 @@ load_dotenv()
 
 BACKEND_ENDPOINT = os.getenv("BACKEND_ENDPOINT")
 BEARER_TOKEN = os.getenv("BEARER_TOKEN")
-PORT = 5683
+PORT = 4230
 
 env_port = os.getenv("PORT")
 
@@ -158,7 +158,7 @@ async def main():
 
     context = await Context.create_server_context(
         root,
-        ("0.0.0.0", 4230),
+        ("0.0.0.0", PORT),
         server_credentials=server_credentials,
         transports=list(["oscore", "udp6"]),  # udp6 and oscore for encrypted connection
     )
