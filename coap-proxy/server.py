@@ -11,10 +11,6 @@
 #   "aiohttp >= 3.10.0, < 4.0",
 # ]
 # ///
-"""
-Minimal server providing a single resource /uppercase, to which ASCII text can
-be POSTed; the text is returned IN ALL CAPS.
-"""
 
 import asyncio
 import logging
@@ -48,6 +44,9 @@ env_port = os.getenv("PORT")
 
 if env_port is not None:
     PORT = int(env_port)
+
+
+logger = logging.getLogger(__name__)
 
 
 # minicbor doesn't set names to fields, we have to manually restore them
@@ -102,14 +101,17 @@ class Register(Resource):
         # This represents the IP and port we can use to contact the device.
         remote = request.remote.uri_base
 
-        print("received ping from device:", remote)
+        logger.info("received ping from device: %s", remote)
         servers.add(remote)
 
         try:
             # directly request the update to the remote
             await process_update(remote)
         except Exception as e:
-            print("Error when processing update:", e)
+            import traceback
+            traceback.print_exc()
+
+            logger.error("Error when processing update: %s", e)
             return aiocoap.Message(
                 content_format=0,
                 payload=b"Internal Server Error",
@@ -163,29 +165,29 @@ async def main():
 
     context.client_credentials.load_from_dict(credentials)
 
-    print("request interfaces", context.request_interfaces)
-    print("CoAP server started")
+    logger.info("request interfaces %s", context.request_interfaces)
+    logger.info("CoAP server started")
     await asyncio.get_running_loop().create_future()
 
 
 async def process_update(server: str):
     # We have to use the server's context so we use the same UDP port and can go through the NAT.
-    # This uses the NAT the different routers have setup when the device did a request to this server. 
+    # This uses the NAT the different routers have setup when the device did a request to this server.
     global context
     if context is None:
-        print("Error: uninitialized context")
+        logger.error("Error: uninitialized context")
         return
-    print("sending request to server ", server)
+    logger.info("sending request to server %s", server)
 
     msg = Message(code=GET, uri=server + "/status")
     result = await context.request(msg).response
 
-    print("received result: ", result)
+    logger.info("received result: %s", result)
     if result.code == Code.CONTENT:
         decoded = cbor2.loads(result.payload)
-        print("cbor data:", decoded)
+        logger.info("cbor data: %s", decoded)
         body = convert_gateway_update(decoded)
-        print("received result: ", json.dumps(body, indent=4))
+        logger.info("received result: %s", json.dumps(body, indent=4))
 
         if BEARER_TOKEN is not None and BACKEND_ENDPOINT is not None:
             bearer = "Bearer " + BEARER_TOKEN
@@ -195,14 +197,14 @@ async def process_update(server: str):
                     BACKEND_ENDPOINT,
                     json=body,
                 ) as response:
-                    print("result: ", response.status, await response.text())
+                    logger.info("result: %s %s", response.status, await response.text())
         else:
-            print(
+            logger.error(
                 "Cannot send request to backend: BEARER_TOKEN and BACKEND_ENDPOINT need to be set"
             )
 
     else:
-        print("Got error code: ", result.code)
+        logger.warning("Got error code: %s", result.code)
 
 
 # This loop is not started. You can start it by uncommenting the few lines at the start of main()
@@ -213,7 +215,7 @@ async def loop():
     while True:
         await asyncio.sleep(70)
 
-        print("Getting update from servers: ")
+        logger.info("Getting update from servers: ")
         for s in servers:
             process_update(s)
 
