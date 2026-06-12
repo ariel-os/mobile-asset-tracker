@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mobile-asset-tracker-service
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: mobile-asset-tracker-coap
+  ports:
+    - protocol: UDP
+      port: 4230
+      targetPort: 4230
+      nodePort: 30030

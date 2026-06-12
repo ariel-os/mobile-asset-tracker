@@ -1,0 +1,14 @@
+services:
+  web:
+    image: ghcr.io/nponsard/mobile-asset-tracker:0.1.2
+    restart: unless-stopped
+    ports:
+      - "4230:4230/udp"
+    expose:
+      - "4230"
+    environment:
+      - BACKEND_ENDPOINT=test
+      - BEARER_TOKEN=test
+      - SERVER_DIAG_FILE=/etc/coap-secret/server.diag
+    volumes:
+      - ./coap-secret:/etc/coap-secret
