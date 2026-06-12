@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mobile-asset-tracker-coap
+spec:
+  containers:
+    - name: mobile-asset-tracker-coap
+      image: ghcr.io/nponsard/mobile-asset-tracker:0.1.2
+      ports:
+        - containerPort: 4230
+      volumeMounts:
+        - name: coap-secret
+          mountPath: "/etc/coap-secret"
+          readOnly: true
+      env:
+        - name: SERVER_DIAG_FILE
+          value: "/etc/coap-secret/server.diag"
+        - name: BACKEND_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: kuzzle-secret
+              key: BACKEND_ENDPOINT
+        - name: BEARER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: kuzzle-secret
+              key: BEARER_TOKEN
+  volumes:
+    - name: coap-secret
+      secret:
+        defaultMode: 600
+        secretName: coap-secret
