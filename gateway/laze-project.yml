@@ -14,9 +14,10 @@ apps:
       - nrf91-modem
       - ltem-nrf-modem
       - network
-      - coap-client
-      - coap-server
-      - coap-server-config-storage
+#      - coap-client
+#      - coap-server
+#      - coap-server-config-storage
+      - random
 
 modules:
   - name: fake-position
