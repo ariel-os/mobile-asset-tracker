@@ -278,6 +278,8 @@ async fn updates(mut peripherals: Peripherals) {
     let mut led_blue = Output::new(peripherals.user_interaction.led_blue, Level::Low);
     let mut led_red = Output::new(peripherals.user_interaction.led_red, Level::Low);
 
+    let mut uart_request = Output::new(peripherals.uart.request, Level::Low);
+
     led_red.set_high();
     led_green.set_high();
     led_blue.set_high();
@@ -292,6 +294,12 @@ async fn updates(mut peripherals: Peripherals) {
     Timer::after_millis(500).await;
 
     ltem::disable();
+
+    let mut rx_buf = [0u8; 32];
+    let mut tx_buf = [0u8; 1];
+
+    let mut uart_config = hal::uart::Config::default();
+    uart_config.baudrate = Baudrate::_115200;
 
     loop {
         // Wait for the button being pressed or 60s, whichever comes first.
@@ -357,12 +365,23 @@ async fn updates(mut peripherals: Peripherals) {
         led_green.set_low();
         led_blue.set_high();
 
-        let addresses_seen = uart_receive(
-            peripherals.uart.request.reborrow(),
-            peripherals.uart.uart_rx.reborrow(),
-            peripherals.uart.uart_tx.reborrow(),
-        )
-        .await;
+        let detected_tags = {
+            let uart = pins::ReceiverUart::new(
+                peripherals.uart.uart_rx.reborrow(),
+                peripherals.uart.uart_tx.reborrow(),
+                &mut rx_buf,
+                &mut tx_buf,
+                uart_config,
+            )
+            .expect("Invalid UART configuration");
+            uart_request.set_high();
+
+            let detected_tags = wait_for_decoded_message(uart).await;
+
+            uart_request.set_low();
+            detected_tags
+        };
+
         let decode_instant = Instant::now();
 
         info!("Enabling cellular networking");
@@ -382,13 +401,13 @@ async fn updates(mut peripherals: Peripherals) {
         led_green.set_high();
         led_blue.set_low();
 
-        debug!("Getting seen list");
+        debug!("Updating detected tags age");
 
         let decode_age_secs =
             u16::try_from(Instant::now().duration_since(decode_instant).as_secs())
                 .unwrap_or(u16::MAX);
 
-        let detected_tags = addresses_seen
+        let detected_tags = detected_tags
             .tags
             .iter()
             .map(|tag| DetectedTag {
