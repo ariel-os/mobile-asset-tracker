@@ -31,7 +31,7 @@ graph TD;
     B(BLE scan) --> nRF5340;
     G(GNSS location) --> nRF9151;
     nRF5340-->|UART + Postcard| nRF9151;
-    nRF9151-->|LTE-M + CoAP| P(CoAP proxy);
+    nRF9151-->|LTE-M + HTTPS| P(Kuzzle Server);
 ```
 
 ### nRF5340 Network core
@@ -63,16 +63,7 @@ It is responsible for aggregating the information and sending it to the server.
   1. Power up the GNSS and get the current location using GNSS
   2. Request the latest list of BLE devices from the nRF5340 (GPIO1 + UART)
   3. Prepare the payload to send
-  4. Power up LTE-M and send a ping to the proxy, keeping LTE-M active for 10 seconds so the proxy can do the CoAP request
-- A second task handles the CoAP requests
-
-### The proxy
-
-In `coap-proxy/` is an example of simple "Resource Directory" where the devices can register themselves to. This server will then use the NAT port mapping created by the initial request of the gateway to send requests to it. This proxy will then send requests to the gateway to query its current status.
-
-To allow for optimizations, this proxy will request the status of the gateway right after it sent a request to `/register`. This is inspired by the resource directory described in [RFC 9176](https://www.rfc-editor.org/rfc/rfc9176) but isn't compatible with it.
-
-The communication is encrypted using `OSCORE` and `EDHOC` is used to establish and exchange the keys. The gateway checks the authenticity of the server as it knows its public key, but the server cannot yet validate the authenticity of the gateway.
+  4. Power up LTE-M and send a POST request to the backend.
 
 ### Common types
 
@@ -83,15 +74,10 @@ The communication is encrypted using `OSCORE` and `EDHOC` is used to establish a
 These extra directories contain tools to help debug the different parts of the system, they may not be up to date:
 
 - `reader/` is a test application that reads the data sent through `UART` from the `net` application.
-- `coap-tests/` is used to test coap connection without having to use the Thingy:91 X and cellular network.
 
 ## Setup
 
 As the only supported networking interface of the nRF9151 MCU is LTE-M, you need the proxy to be accessible through the internet and a SIM that allows LTE-M networking in your area.
-
-### Proxy setup
-
-Follow the guide in [coap-proxy](coap-proxy/Readme.md).
 
 ### Flashing the Thingy:91 X
 
@@ -150,10 +136,10 @@ Set the SWD switch (SW2) to the "nRF91" posistion.
 
 ```sh
 cd gateway
-COAP_ENDPOINT=<endpoint> laze build -b nordic-thingy-91-x-nrf9151 run
+KUZZLE_ENDPOINT=<endpoint> KUZZLE_TOKEN=<token> laze build -b nordic-thingy-91-x-nrf9151 run
 ```
 
-Replace `<endpoint>` with the IP and port of the CoAP proxy (ex: `1.2.3.4:4230`).
+Replace `<endpoint>` and `<token>` with the Kuzzle backend URL and token.
 
 > If you need to configure how to connect to the cellular network, you can use the following environment variables add build time (prepend them to the command, before `laze build`):
 >
