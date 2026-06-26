@@ -6,15 +6,11 @@ mod sensors;
 
 extern crate alloc;
 
-use core::{cell::RefCell, str::FromStr as _};
+use core::str::FromStr as _;
 
 use embassy_net::{
     dns::DnsSocket,
     tcp::client::{TcpClient, TcpClientState},
-};
-use embassy_sync::{
-    blocking_mutex::{self, raw::CriticalSectionRawMutex},
-    mutex::Mutex,
 };
 use embedded_io_async::BufRead;
 use heapless::{String, Vec};
@@ -58,9 +54,6 @@ const KUZZLE_TOKEN: &str = str_from_env!("KUZZLE_TOKEN", "Kuzzle token.");
 
 const BEARER_HEADER_VALUE: &str = const_str::format!("Bearer {}", KUZZLE_TOKEN);
 const TIME_BETWEEN_UPDATES: Duration = Duration::from_secs(360);
-
-static LAST_UPDATE: blocking_mutex::Mutex<CriticalSectionRawMutex, RefCell<Option<GatewayUpdate>>> =
-    blocking_mutex::Mutex::new(RefCell::new(None));
 
 async fn wait_for_decoded_message(mut uart: Uart<'_>) -> TagsSeen {
     let mut packet_buffer: Vec<u8, 8192> = Vec::new();
