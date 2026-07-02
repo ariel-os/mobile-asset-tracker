@@ -448,6 +448,7 @@ version = "0.1.0"
 dependencies = [
  "ariel-os",
  "ariel-os-boards",
+ "bt-hci 0.6.0",
  "common-types",
  "embassy-futures",
  "embassy-nrf",
@@ -456,6 +457,7 @@ dependencies = [
  "heapless 0.9.2",
  "postcard",
  "trouble-host",
+ "uuid",
 ]
 
 [[package]]
@@ -563,6 +565,7 @@ dependencies = [
  "heapless 0.9.2",
  "postcard",
  "serde",
+ "uuid",
 ]
 
 [[package]]
@@ -2981,11 +2984,12 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "1.17.0"
+version = "1.23.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cf4199d1e5d15ddd86a694e4d0dffa9c323ce759fea589f00fef9d81cc1931d"
+checksum = "bf80a72845275afea99e7f2b434723d3bc7e38470fcd1c7ed39a599c73319a53"
 dependencies = [
  "js-sys",
+ "serde_core",
  "wasm-bindgen",
 ]
 
@@ -3040,7 +3044,6 @@ checksum = "1edc8929d7499fc4e8f0be2262a241556cfc54a0bea223790e71446f2aab1ef5"
 dependencies = [
  "cfg-if",
  "once_cell",
- "rustversion",
  "wasm-bindgen-macro",
 ]
 

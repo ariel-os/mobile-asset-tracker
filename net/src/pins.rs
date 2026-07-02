@@ -23,4 +23,6 @@ ariel_os::hal::define_peripherals!(Peripherals {
     uart_tx: P0_06,
     uart_rx: P0_08,
     serial: UARTE0,
+
+    request: P0_05,
 });
