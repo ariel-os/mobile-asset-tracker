@@ -1,0 +1,10 @@
+imports:
+  - git:
+      url: https://github.com/ariel-os/ariel-os
+      tag: v0.5.0
+    dldir: ariel-os
+
+apps:
+  - name: mobile-asset-tracker-advertiser
+    selects:
+      - ble-peripheral
