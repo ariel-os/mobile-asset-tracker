@@ -10,6 +10,7 @@ use std::vec::Vec;
 
 pub const MAX_SEEN: usize = 32;
 pub const TAG_NAME_MAX_LEN: usize = 64;
+pub const ADDR_STRING_LEN: usize = 6 * 2 + 5; // 6 bytes (2 chars per byte) + 5 colons
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TagsSeen {
@@ -45,11 +46,21 @@ pub struct Location {
 #[cfg_attr(feature = "minicbor", derive(Decode, Encode))]
 pub struct DetectedTag {
     #[cfg_attr(feature = "minicbor", cbor(n(0), with = "minicbor_adapters"))]
-    pub id: heapless::String<TAG_NAME_MAX_LEN>,
+    pub addr: heapless::String<ADDR_STRING_LEN>,
+
+    #[cfg(feature = "std")]
     #[cfg_attr(feature = "minicbor", n(1))]
-    pub age: u16,
+    pub name: String,
+    #[cfg(not(feature = "std"))]
+    #[cfg_attr(feature = "minicbor", cbor(n(1), with = "minicbor_adapters"))]
+    pub name: heapless::String<TAG_NAME_MAX_LEN>,
+
     #[cfg_attr(feature = "minicbor", n(2))]
+    pub age: u16,
+    #[cfg_attr(feature = "minicbor", n(3))]
     pub rssi: i8,
+    #[cfg_attr(feature = "minicbor", n(4))]
+    pub sequence: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
