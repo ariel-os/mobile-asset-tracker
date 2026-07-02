@@ -5,6 +5,7 @@ mod pins;
 
 use core::{cell::Cell, str::FromStr};
 
+use bt_hci::{cmd::info, param::LeAdvReport};
 use embassy_futures::join::join;
 use embassy_sync::blocking_mutex::{Mutex, raw::CriticalSectionRawMutex};
 use embedded_io_async::Write;
@@ -36,8 +37,9 @@ use embassy_nrf::peripherals::UARTE0;
 #[cfg(context = "nrf52840dk")]
 use embassy_nrf::peripherals::UARTE0;
 use embassy_nrf::{bind_interrupts, uarte};
+use uuid::Uuid;
 
-type TagStorageMap = FnvIndexMap<String<TAG_NAME_MAX_LEN>, (Instant, i8), MAX_SEEN>;
+type TagStorageMap = FnvIndexMap<Uuid, (Instant, i8), MAX_SEEN>;
 
 static SEEN: Mutex<CriticalSectionRawMutex, Cell<TagStorageMap>> =
     Mutex::new(Cell::new(FnvIndexMap::new()));
@@ -195,62 +197,70 @@ async fn run_scanner() {
 
 struct DiscorveryHandler {}
 
+fn return_valid_uuid(report: LeAdvReport) -> Option<uuid::Uuid> {
+    let adv_data = AdStructure::decode(report.data);
+
+    for adv in adv_data {
+        match adv {
+            Ok(AdStructure::ManufacturerSpecificData {
+                company_identifier,
+                payload,
+            }) => {
+                // If not Apple (for iBeacon)
+                if company_identifier != 0x004c {
+                    trace!("dropping for incorrect identifier");
+                    return None;
+                }
+
+                if payload.len() <= 22 {
+                    debug!("dropping for incorrect length {}", payload.len());
+
+                    return None;
+                }
+
+                debug!("getting uuid");
+                let mut uuid_data: [u8; 16] = [0; 16];
+                uuid_data.copy_from_slice(payload.get(2..=17)?);
+                debug!("getting sequence");
+
+                let mut sequence_data: [u8; 4] = [0; 4];
+                sequence_data.copy_from_slice(payload.get(18..=21)?);
+
+                let uuid = uuid::Uuid::from_bytes(uuid_data);
+                let sequence = u32::from_be_bytes(sequence_data);
+
+                info!(
+                    "uuid: {:?}, sequence:{}",
+                    Debug2Format(&uuid.hyphenated()),
+                    sequence
+                );
+
+                return Some(uuid);
+            }
+
+            Ok(adv) => {
+                trace!("unknown advertisement {:?}", adv);
+            }
+            Err(e) => {
+                trace!("error decoding advertisement: {:?}", e);
+            }
+        }
+    }
+    None
+}
+
 impl EventHandler for DiscorveryHandler {
     fn on_adv_reports(&self, mut it: LeAdvReportsIter<'_>) {
+        let instant = Instant::now();
+
         SEEN.lock(|cell| {
             let mut seen = cell.take();
             while let Some(Ok(report)) = it.next() {
-                let adv_data = AdStructure::decode(report.data);
+                let uuid = return_valid_uuid(report);
+                if let Some(uuid) = uuid {
+                    info!("uuid: {:?}, rssi {},chan {}", Debug2Format(&uuid.hyphenated()),report.rssi,report.event_kind)
 
-                let name = {
-                    let mut decoded = None;
-                    for adv in adv_data {
-                        match adv {
-                            Ok(AdStructure::CompleteLocalName(data)) => {
-                                decoded = str::from_utf8(data).ok();
-
-                                if decoded.is_none() {
-                                    warn!("failed to decode name");
-                                }
-
-                                break;
-                            }
-
-                            Ok(adv) => {
-                                trace!("unknown advertisement {:?}", adv);
-                            }
-                            Err(e) => {
-                                trace!("error decoding advertisement: {:?}", e);
-                            }
-                        }
-                    }
-                    decoded
-                };
-
-                if let Some(str_name) = name
-                    && str_name.starts_with(PREFIX)
-                {
-                    match String::from_str(str_name) {
-                        Ok(name) => {
-                            if !seen.contains_key(&name) {
-                                trace!("discovered: {}", name.as_str());
-                                // force cleanup if we have too many entries
-                                if seen.len() >= MAX_SEEN {
-                                    remove_old_entries(&mut seen);
-                                    // if we still have too many entries, remove the oldest one
-                                    if seen.len() >= MAX_SEEN {
-                                        warn!("too many seen entries, removing oldest");
-                                        remove_oldest_entry(&mut seen);
-                                    }
-                                }
-                            }
-                            // Update / insert the address with the current time
-                            let _ = seen.insert(name, (Instant::now(), report.rssi));
-                        }
-                        Err(e) => {
-                            warn!("BLE name too long: {:?} ", Debug2Format(&e));
-                        }
-                    }
+                    let _ = seen.insert(uuid, (instant, report.rssi));
                 }
             }
 

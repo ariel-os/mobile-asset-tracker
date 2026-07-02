@@ -55,7 +55,7 @@ async fn run_advertisement() {
                     AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
                     AdStructure::ManufacturerSpecificData {
                         // Apple company identifier [0x4c, 0x00]
-                        company_identifier: 0x4c00,
+                        company_identifier: 0x004c,
                         payload: &manufacturer_payload,
                     },
                 ],
@@ -80,7 +80,7 @@ async fn run_advertisement() {
                 )
                 .await;
 
-            Timer::after_millis(100).await;
+            Timer::after_secs(1).await;
             sequence += 1;
         }
     })

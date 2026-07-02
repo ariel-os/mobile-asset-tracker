@@ -45,7 +45,8 @@ pub struct Location {
 #[cfg_attr(feature = "minicbor", derive(Decode, Encode))]
 pub struct DetectedTag {
     #[cfg_attr(feature = "minicbor", cbor(n(0), with = "minicbor_adapters"))]
-    pub id: heapless::String<TAG_NAME_MAX_LEN>,
+    #[cfg_attr(feature = "uuid-as-string", serde(with = "uuid::serde::hyphenated"))]
+    pub id: uuid::Uuid,
     #[cfg_attr(feature = "minicbor", n(1))]
     pub age: u16,
     #[cfg_attr(feature = "minicbor", n(2))]

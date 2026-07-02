@@ -741,6 +741,7 @@ dependencies = [
  "heapless 0.9.3",
  "postcard",
  "serde",
+ "uuid",
 ]
 
 [[package]]
@@ -3946,6 +3947,15 @@ checksum = "98816b1accafbb09085168b90f27e93d790b4bfa19d883466b5e53315b5f06a6"
 dependencies = [
  "heapless 0.8.0",
  "portable-atomic",
+]
+
+[[package]]
+name = "uuid"
+version = "1.23.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf80a72845275afea99e7f2b434723d3bc7e38470fcd1c7ed39a599c73319a53"
+dependencies = [
+ "serde_core",
 ]
 
 [[package]]

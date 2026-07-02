@@ -10,6 +10,7 @@ postcard = "1.1.3"
 serde = { version = "1.0.228", default-features = false, features = ["derive"] }
 minicbor = { version = "=2.1.3", features = ["derive"], optional = true }
 minicbor-adapters = { version = "0.0.8", optional = true }
+uuid = { version = "1.23", default-features = false, features = ["serde"] }
 
 [features]
 default = []
@@ -17,3 +18,4 @@ default = []
 from-impl = ["dep:bt-hci"]
 std = ["minicbor/std", "serde/std"]
 minicbor = ["dep:minicbor", "dep:minicbor-adapters"]
+uuid-as-string = []

@@ -398,6 +398,8 @@ async fn updates(mut peripherals: Peripherals) {
             }
         };
 
+        info!("json : {:?}", Debug2Format(&serde_json::to_string(&update).unwrap()));
+
         debug!("Sending request");
         if let Err(err) =
             send_kuzzle_post_request(&mut client, KUZZLE_ENDPOINT, body.as_slice()).await
