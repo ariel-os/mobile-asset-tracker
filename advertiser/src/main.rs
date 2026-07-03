@@ -11,6 +11,12 @@ use trouble_host::advertise::{
     LE_GENERAL_DISCOVERABLE,
 };
 
+const TAG_NAME: &str =
+    ariel_os::config::str_from_env!("TAG_NAME", "Name of the BLE tag to advertise");
+
+// Advertisement interval in ms.
+const ADVERTISEMENT_INTERVAL: u64 = 500;
+
 #[ariel_os::task(autostart)]
 async fn run_advertisement() {
     info!("starting ble stack");
@@ -34,38 +40,23 @@ async fn run_advertisement() {
     let _ = join(host.runner.run(), async {
         loop {
             let sequence_bytes = sequence.to_be_bytes();
-            let mut manufacturer_payload: Vec<_, 27> = Vec::new();
-            manufacturer_payload
-                .extend_from_slice(&BEACON_TYPE)
-                .unwrap();
-            manufacturer_payload
-                .extend_from_slice(&beacon_uuid)
-                .unwrap();
-
-            // We replace MAJOR and MINOR with the sequence bytes
-            manufacturer_payload
-                .extend_from_slice(&sequence_bytes)
-                .unwrap();
-            manufacturer_payload
-                .extend_from_slice(&BEACON_MEASURED_POWER)
-                .unwrap();
 
             let len = AdStructure::encode_slice(
                 &[
                     AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
+                    AdStructure::CompleteLocalName(TAG_NAME.as_bytes()),
                     AdStructure::ManufacturerSpecificData {
-                        // Apple company identifier [0x4c, 0x00]
-                        company_identifier: 0x004c,
-                        payload: &manufacturer_payload,
+                        company_identifier: 0xFFFF,
+                        payload: &sequence_bytes,
                     },
                 ],
                 &mut adv_data[..],
             )
             .unwrap();
             let params = AdvertisementParameters {
-                interval_min: Duration::from_millis(100),
-                interval_max: Duration::from_millis(100),
-                max_events: Some(1),
+                interval_min: Duration::from_millis(ADVERTISEMENT_INTERVAL * 16),
+                interval_max: Duration::from_millis(ADVERTISEMENT_INTERVAL * 16),
+                // max_events: Some(1),
                 ..Default::default()
             };
 
@@ -80,7 +71,7 @@ async fn run_advertisement() {
                 )
                 .await;
 
-            Timer::after_secs(1).await;
+            Timer::after_millis(ADVERTISEMENT_INTERVAL).await;
             sequence += 1;
         }
     })
