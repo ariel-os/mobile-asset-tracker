@@ -8,7 +8,7 @@ use bt_hci::{
     controller::ControllerCmdSync,
     param::LeAdvReport,
 };
-use common_types::{TAG_NAME_MAX_LEN, TagReport};
+
 use embassy_futures::join::join;
 use embassy_sync::{
     blocking_mutex::raw::CriticalSectionRawMutex,
@@ -19,13 +19,24 @@ use trouble_host::{
     Controller, Host, PacketPool,
     advertise::AdStructure,
     connection::{PhySet, ScanConfig},
-    prelude::EventHandler,
+    prelude::{BdAddr, EventHandler},
     scan::Scanner,
 };
 
-use ariel_os::time::{Duration, Instant, Timer};
+use common_types::TAG_NAME_MAX_LEN;
+
+use embassy_time::{Duration, Instant, Timer};
 
 pub const CHANNEL_CAPACITY: usize = 32;
+
+#[derive(Clone, Debug)]
+pub struct TagReport {
+    pub addr: BdAddr,
+    pub name: heapless::String<TAG_NAME_MAX_LEN>,
+    pub timestamp: embassy_time::Instant,
+    pub rssi: i8,
+    pub sequence: u32,
+}
 
 pub struct TagScanner {
     queue: Channel<CriticalSectionRawMutex, TagReport, CHANNEL_CAPACITY>,
@@ -143,10 +154,10 @@ impl EventHandler for ScanEventHandler<'_> {
         let instant = Instant::now();
 
         while let Some(Ok(report)) = it.next() {
-            let addr = report.addr.into_inner();
+            let addr = report.addr;
             let rssi = report.rssi;
 
-            if !addr.starts_with(&self.prefix) {
+            if !addr.into_inner().starts_with(&self.prefix) {
                 continue;
             }
 
@@ -154,7 +165,7 @@ impl EventHandler for ScanEventHandler<'_> {
                 let _ = self.sender.try_send(TagReport {
                     addr,
                     name,
-                    timestamp: instant.as_ticks(),
+                    timestamp: instant,
                     rssi,
                     sequence,
                 });
