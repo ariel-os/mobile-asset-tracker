@@ -43,14 +43,38 @@ pub struct Location {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "minicbor", derive(Decode, Encode))]
+pub struct TagReport {
+    pub addr: [u8; 6],
+
+    #[cfg(feature = "std")]
+    pub name: String,
+    #[cfg(not(feature = "std"))]
+    pub name: heapless::String<TAG_NAME_MAX_LEN>,
+
+    pub timestamp: u64,
+    pub rssi: i8,
+    pub sequence: u32,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "minicbor", derive(Decode, Encode))]
 pub struct DetectedTag {
     #[cfg_attr(feature = "minicbor", cbor(n(0), with = "minicbor_adapters"))]
-    #[cfg_attr(feature = "uuid-as-string", serde(with = "uuid::serde::hyphenated"))]
-    pub id: uuid::Uuid,
+    pub addr: [u8; 6],
+
+    #[cfg(feature = "std")]
     #[cfg_attr(feature = "minicbor", n(1))]
-    pub age: u16,
+    pub name: String,
+    #[cfg(not(feature = "std"))]
+    #[cfg_attr(feature = "minicbor", cbor(n(1), with = "minicbor_adapters"))]
+    pub name: heapless::String<TAG_NAME_MAX_LEN>,
+
     #[cfg_attr(feature = "minicbor", n(2))]
+    pub age: u16,
+    #[cfg_attr(feature = "minicbor", n(3))]
     pub rssi: i8,
+    #[cfg_attr(feature = "minicbor", n(4))]
+    pub sequence: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

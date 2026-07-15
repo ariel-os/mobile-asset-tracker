@@ -1,0 +1,26 @@
+[package]
+name = "mobile-asset-tracker-scanner"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+harness = false
+
+[dependencies]
+ariel-os = { path = "build/imports/ariel-os/src/ariel-os", features = ["time"] }
+ariel-os-boards = { path = "build/imports/ariel-os/src/ariel-os-boards" }
+
+trouble-host = { version = "0.5.1", features = ["derive", "scan"] }
+heapless = { version = "0.9.2", features = ["serde"] }
+serde = { version = "1.0.228", default-features = false, features = ["derive"] }
+embassy-sync = "0.6.2"
+bt-hci = "0.6.0"
+common-types = { path = "../common-types", features = ["from-impl"] }
+embassy-futures = { version = "0.1.1" }
+
+[features]
+default = []
+
+
+[dev-dependencies]
+embedded-test = { version = "0.7.1", features = ["ariel-os-09"] }
