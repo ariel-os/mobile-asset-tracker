@@ -36,7 +36,7 @@ graph TD;
 
 ### nRF5340 Network core
 
-`net/` directory.
+`scanner-uart/` directory.
 
 The network core of the nRF5340 MCU is scanning for BLE packets and sending them to the nRF9151 SiP using UART (VCOM1).
 
@@ -71,15 +71,17 @@ It is responsible for aggregating the information and sending it to the server.
 
 This is the firmware that runs on the BLE tags, advertising with a static address and icluding a sequence number in the advertisement.
 
-### Common types
+### Common crates
 
-`common-types/` contains the types that are sent through communication channels (UART, networking).
+- `common-types/` contains the types that are sent through communication channels (UART, networking).
+- `scanner/` contains the BLE scanning logic.
 
 ### Extras
 
 These extra directories contain tools to help debug the different parts of the system, they may not be up to date:
 
 - `reader/` is a test application that reads the data sent through `UART` from the `net` application.
+- `scanner-aio-http/` is an application that sends every advertisement received to an HTTP server, all in one app. Used for static sniffers that uses MCUs that have access to both networking and BlE.
 
 ## Setup
 
