@@ -12,7 +12,7 @@ apps:
     env:
       global:
         executor_stacksize_required:
-          - "65536"
+          - "131072"
     selects:
       - alloc
       - nrf91-modem
