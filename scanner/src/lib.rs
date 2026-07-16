@@ -91,13 +91,23 @@ impl TagScanner {
                 window: config_window,
                 ..Default::default()
             };
+
             // Scan forever
-            loop {
-                {
-                    let _session = scanner.scan(&config).await.unwrap();
-                    Timer::after(window).await
+
+            if interval <= Duration::from_secs(10) {
+                let _session = scanner.scan(&config).await.unwrap();
+                loop {
+                    Timer::after_secs(1000).await;
                 }
-                Timer::after(interval - window).await;
+            } else {
+                // If we scan at a longer intervals, we need to stop the scan by dropping it.
+                loop {
+                    {
+                        let _session = scanner.scan(&config).await.unwrap();
+                        Timer::after(window).await
+                    }
+                    Timer::after(interval - window).await;
+                }
             }
         })
         .await;
