@@ -376,6 +376,8 @@ async fn updates(mut peripherals: Peripherals) {
             })
             .collect();
 
+        info!("detected_tags: {:?}", Debug2Format(&detected_tags));
+
         // Backend forces to have values instead of undefined, so we send possibly wrong data.
         let update = GatewayUpdate {
             location,
@@ -398,7 +400,10 @@ async fn updates(mut peripherals: Peripherals) {
             }
         };
 
-        info!("json : {:?}", Debug2Format(&serde_json::to_string(&update).unwrap()));
+        info!(
+            "json : {:?}",
+            Debug2Format(&serde_json::to_string(&update).unwrap())
+        );
 
         debug!("Sending request");
         if let Err(err) =
