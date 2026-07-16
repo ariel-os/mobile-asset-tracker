@@ -1,0 +1,18 @@
+imports:
+  - git:
+      url: https://github.com/ariel-os/ariel-os
+      tag: v0.5.0
+    dldir: ariel-os
+
+apps:
+  - name: mobile-asset-tracker-scanner-aio-http
+
+    env:
+      global:
+        executor_stacksize_required:
+          - "65536"
+    selects:
+      - ble-central
+      - network
+      - alloc
+      - random

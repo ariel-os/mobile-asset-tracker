@@ -1,0 +1,62 @@
+{
+  "lsp": {
+    "rust-analyzer": {
+      "initialization_options": {
+        "cargo": {
+          "buildScripts": {
+            "overrideCommand": [
+              "cargo",
+              "check",
+              "--features=ariel-os/random,ariel-os/dhcpv4,ariel-os/ipv4,ariel-os/wifi-esp,ariel-os/hwrng,ariel-os/panic-printing,ariel-os/defmt,ariel-os/esp-println,ariel-os/logging-over-usb,ariel-os/single-core,ariel-os/executor-thread,ariel-os/idle-threads,ariel-os/alloc,ariel-os/ble-esp,ariel-os/ble,ariel-os/ble-central",
+              "--message-format=json"
+            ]
+          },
+          "extraEnv": {
+            "CARGO_BUILD_TARGET": "riscv32imac-unknown-none-elf",
+            "CARGO_TARGET_DIR": "./build/bin/seeedstudio-xiao-esp32c6/cargo",
+            "CARGO_TARGET_RISCV32IMAC_UNKNOWN_NONE_ELF_RUNNER": "espflash flash --monitor --log-format defmt",
+            "CARGO_TARGET_RISCV32IMAC_UNKNOWN_NONE_ELF_RUSTFLAGS": "--cfg context=\"seeedstudio-xiao-esp32c6\" --cfg context=\"esp32c6fx4\" --cfg context=\"esp32c6\" --cfg context=\"esp\" --cfg context=\"ariel-os\" --cfg context=\"default\" -Clink-arg=-Tlinkall.x --cfg getrandom_backend=\"custom\" --cfg stable -Cembed-bitcode=yes -Clto=fat -Ccodegen-units=1 -Clink-arg=-Tdefmt.x -C force-frame-pointers --cfg context=\"riscv\" -Clink-arg=-Tisr_stack.x -Clink-arg=-Tlinkme-region-alias.x -Clink-arg=-Tlinkme.x --cfg capability=\"hw/ble\"",
+            "CONFIG_BOARD": "seeedstudio-xiao-esp32c6",
+            "CONFIG_EXECUTOR_STACKSIZE": "8192",
+            "CONFIG_HEAPSIZE": "147456",
+            "CONFIG_ISR_STACKSIZE": "32768",
+            "CONFIG_WIFI_NETWORK": "test-wifi",
+            "CONFIG_WIFI_PASSWORD": "test-password",
+            "DEFMT_LOG": "info,",
+            "OPENOCD_ARGS": "",
+            "RUSTFLAGS": "--cfg context=\"seeedstudio-xiao-esp32c6\" --cfg context=\"esp32c6fx4\" --cfg context=\"esp32c6\" --cfg context=\"esp\" --cfg context=\"ariel-os\" --cfg context=\"default\" -Clink-arg=-Tlinkall.x --cfg getrandom_backend=\"custom\" --cfg stable -Cembed-bitcode=yes -Clto=fat -Ccodegen-units=1 -Clink-arg=-Tdefmt.x -C force-frame-pointers --cfg context=\"riscv\" -Clink-arg=-Tisr_stack.x -Clink-arg=-Tlinkme-region-alias.x -Clink-arg=-Tlinkme.x --cfg capability=\"hw/ble\"",
+            "SCRIPTS": "./scripts"
+          },
+          "features": [
+            "ariel-os/random",
+            "ariel-os/dhcpv4",
+            "ariel-os/ipv4",
+            "ariel-os/wifi-esp",
+            "ariel-os/hwrng",
+            "ariel-os/panic-printing",
+            "ariel-os/defmt",
+            "ariel-os/esp-println",
+            "ariel-os/logging-over-usb",
+            "ariel-os/single-core",
+            "ariel-os/executor-thread",
+            "ariel-os/idle-threads",
+            "ariel-os/alloc",
+            "ariel-os/ble-esp",
+            "ariel-os/ble",
+            "ariel-os/ble-central"
+          ]
+        },
+        "check": {
+          "allTargets": false,
+          "command": "clippy",
+          "extraArgs": [
+            "--features=ariel-os/random,ariel-os/dhcpv4,ariel-os/ipv4,ariel-os/wifi-esp,ariel-os/hwrng,ariel-os/panic-printing,ariel-os/defmt,ariel-os/esp-println,ariel-os/logging-over-usb,ariel-os/single-core,ariel-os/executor-thread,ariel-os/idle-threads,ariel-os/alloc,ariel-os/ble-esp,ariel-os/ble,ariel-os/ble-central"
+          ]
+        },
+        "files": {
+          "watcher": "server"
+        }
+      }
+    }
+  }
+}
