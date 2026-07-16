@@ -1,0 +1,53 @@
+[package]
+name = "mobile-asset-tracker-scanner-aio-http"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ariel-os = { path = "build/imports/ariel-os/src/ariel-os", features = [
+  "tcp",
+  "mdns",
+  "dns",
+  "time",
+  "csprng",
+] }
+ariel-os-boards = { path = "build/imports/ariel-os/src/ariel-os-boards" }
+embassy-futures = { version = "0.1.1" }
+heapless = "0.9.2"
+trouble-host = { version = "0.5.1", features = ["derive", "scan"] }
+common-types = { path = "../common-types", features = ["from-impl"] }
+mobile-asset-tracker-scanner = { path = "../scanner" }
+
+embassy-sync = "0.6.2"
+embedded-io-async = "0.6.1"
+uuid = { version = "1.23", default-features = false, features = ["serde"] }
+bt-hci = "0.6.0"
+const-str = "1.0.0"
+
+serde = { version = "1", default-features = false, features = ["derive"] }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
+
+# A bug in embedded-tls 0.18.0, which reqwless 0.14.0 depends on, makes this
+# temporarily needed.
+# The `heapless` feature is needed since 0.8.0-rc.2.
+der = { version = "0.8", default-features = false, features = ["heapless"] }
+
+reqwless = { version = "0.14.0", default-features = true, features = [
+  "embedded-tls",
+  "rsa",
+] }
+
+rand_core = "0.6.4"
+
+
+[target.'cfg(context = "nrf5340-net")'.dependencies]
+embassy-nrf = { version = "0.8.0", features = ["nrf5340-net"] }
+[target.'cfg(context = "nrf52832")'.dependencies]
+# Disable NFC support for now, as we do not support it yet.
+embassy-nrf = { version = "0.8.0", features = ["nfc-pins-as-gpio", "nrf52832"] }
+
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+  'cfg(context, values(any()))',
+] }

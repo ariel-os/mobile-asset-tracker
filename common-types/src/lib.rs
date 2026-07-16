@@ -92,3 +92,31 @@ pub struct GatewayUpdate {
     #[cfg_attr(feature = "minicbor", n(4))]
     pub location: Option<Location>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AdvertisementPayload {
+    pub timestamp: u64,
+    #[cfg(feature = "std")]
+    pub sniffer_id: String,
+    #[cfg(not(feature = "std"))]
+    pub sniffer_id: heapless::String<TAG_NAME_MAX_LEN>,
+    #[cfg(feature = "std")]
+    pub mac: String,
+    #[cfg(not(feature = "std"))]
+    pub mac: heapless::String<ADDR_STRING_LEN>,
+    #[cfg(feature = "std")]
+    pub name: String,
+    #[cfg(not(feature = "std"))]
+    pub name: heapless::String<TAG_NAME_MAX_LEN>,
+
+    pub rssi: i8,
+    pub raw_rssi: i8,
+    pub sequence: u32,
+
+    #[cfg(feature = "std")]
+    pub adv_type: String,
+    #[cfg(not(feature = "std"))]
+    pub adv_type: heapless::String<TAG_NAME_MAX_LEN>,
+
+    pub channel: u8,
+}
