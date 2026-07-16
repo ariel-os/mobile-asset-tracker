@@ -52,8 +52,12 @@ impl TagScanner {
         }
     }
 
-    pub async fn run<'stack, C, P: PacketPool>(&self, mut host: Host<'stack, C, P>)
-    where
+    pub async fn run<'stack, C, P: PacketPool>(
+        &self,
+        mut host: Host<'stack, C, P>,
+        interval: Duration,
+        window: Duration,
+    ) where
         C: Controller
             + ControllerCmdSync<LeSetScanParams>
             + ControllerCmdSync<LeSetScanEnable>
@@ -72,9 +76,9 @@ impl TagScanner {
                 // Workaround is to multiply the value by 16.
 
                 // Max scan interval in the BLE spec is 10s.
-                interval: Duration::from_secs(10 * 16),
+                interval,
                 // Beacon advertising frequency is between 1Hz and 10Hz, staying up makes sure we can catch at least one advertisement.
-                window: Duration::from_secs(2 * 16),
+                window,
                 ..Default::default()
             };
             let mut _session = scanner.scan(&config).await.unwrap();
