@@ -36,7 +36,7 @@ static SEEN: Mutex<CriticalSectionRawMutex, TagStorageMap> = Mutex::new(FnvIndex
 
 const PREFIX_STR: &str = str_from_env_or!(
     "TAG_PREFIX",
-    "CC:CC:CC",
+    "CC:DD:EE",
     "Filter out all BLE devices that don't have this prefix in their name"
 );
 
@@ -168,6 +168,13 @@ async fn receive_tags() {
             remove_oldest_entry(&mut seen);
         }
 
+        info!(
+            "inserting {:?}, sequence: {:06}, name: {}",
+            key,
+            value.sequence,
+            value.name.as_str()
+        );
+
         if let Err(e) = seen.insert(key, value) {
             error!("Cannot insert tag: {:?}", Debug2Format(&e));
         }
@@ -180,5 +187,11 @@ async fn run_scanner() {
 
     let host = ariel_os::ble::ble_stack().await.build();
 
-    TRACKER_SCANNER.run(host).await
+    TRACKER_SCANNER
+        .run(
+            host,
+            Duration::from_secs(10 * 16),
+            Duration::from_secs(2 * 16),
+        )
+        .await
 }
