@@ -157,7 +157,8 @@ impl EventHandler for ScanEventHandler<'_> {
             let addr = report.addr;
             let rssi = report.rssi;
 
-            if !addr.into_inner().starts_with(&self.prefix) {
+            // Prefix in big endian is suffix here
+            if !addr.into_inner().ends_with(&self.prefix) {
                 continue;
             }
 
