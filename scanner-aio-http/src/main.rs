@@ -1,5 +1,8 @@
 #![no_main]
 #![no_std]
+
+mod config;
+
 use core::str::FromStr;
 
 use mobile_asset_tracker_scanner::TagScanner;
@@ -10,34 +13,17 @@ use reqwless::{
 };
 
 use ariel_os::{
-    config::{str_from_env, str_from_env_or},
     identity::Eui48,
     log::{debug, info},
     reexports::embassy_net::{
         dns::DnsSocket,
         tcp::client::{TcpClient, TcpClientState},
     },
-    time::Duration,
 };
 
 use common_types::TAG_NAME_MAX_LEN;
-const PREFIX_STR: &str = str_from_env_or!(
-    "TAG_PREFIX",
-    "CC:DD:EE",
-    "Filter out all BLE devices that don't have this prefix in their name"
-);
 
-const TAG_PREFIX: [u8; 3] = {
-    let mut eui48: [u8; 3] = const_str::hex!(const_str::replace!(PREFIX_STR, ":", ""));
-    eui48.reverse();
-    eui48
-};
-
-const SNIFFER_ID: &str = str_from_env_or!(
-    "SNIFFER_ID",
-    "sniffer-unknown",
-    "Filter out all BLE devices that don't have this prefix in their name"
-);
+use config::*;
 
 static TRACKER_SCANNER: TagScanner = TagScanner::new(TAG_PREFIX);
 
@@ -53,9 +39,6 @@ const TCP_BUFFER_SIZE: usize = 1024;
 const HTTP_BUFFER_SIZE: usize = 1024;
 
 const MAX_CONCURRENT_CONNECTIONS: usize = 2;
-
-const BACKEND_ENDPOINT: &str =
-    str_from_env!("BACKEND_ENDPOINT", "HTTP endpoint to send the data to");
 
 #[ariel_os::task(autostart)]
 async fn receive_tags() {
@@ -77,9 +60,17 @@ async fn receive_tags() {
 
     let mut client = HttpClient::new_with_tls(&tcp_client, &dns_client, tls_config);
 
-    let device_id: heapless::String<TAG_NAME_MAX_LEN> = ariel_os::identity::interface_eui48(1)
-        .map(|eui| heapless::format!("{}", eui).unwrap())
-        .unwrap_or(heapless::String::from_str(SNIFFER_ID).unwrap());
+    let device_id: heapless::String<TAG_NAME_MAX_LEN> = SNIFFER_ID
+        .map(|id| heapless::String::from_str(id).ok())
+        .unwrap_or(
+            ariel_os::identity::interface_eui48(1)
+                .map(|eui| heapless::format!("{}", eui).unwrap())
+                .ok(),
+        )
+        .unwrap_or(
+            heapless::String::try_from("unknown")
+                .expect("heapless string conversion from constant"),
+        );
 
     info!("Device ID: {}", device_id.as_str());
 
@@ -120,14 +111,7 @@ async fn run_scanner() {
 
     let host = ariel_os::ble::ble_stack().await.build();
 
-    TRACKER_SCANNER
-        .run(
-            host,
-            // Issue with bt-hci where actual values are 16 times less.
-            Duration::from_millis(10 * 16),
-            Duration::from_millis(5 * 16),
-        )
-        .await
+    TRACKER_SCANNER.run(host, SCAN_INTERVAL, SCAN_WINDOW).await
 }
 
 async fn send_data_to_backend(
