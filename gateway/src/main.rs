@@ -1,6 +1,7 @@
 #![no_main]
 #![no_std]
 mod board;
+mod config;
 mod pins;
 mod sensors;
 
@@ -21,7 +22,6 @@ use reqwless::{
 };
 
 use ariel_os::{
-    config::str_from_env,
     gpio::{Input, Level, Output, Pull},
     hal::{self, ltem, uart::Uart},
     log::{Debug2Format, debug, error, info, warn},
@@ -34,7 +34,8 @@ use ariel_os_sensors_gnss_time_ext::GnssTimeExt as _;
 
 use common_types::{DetectedTag, GatewayUpdate, Location, TAG_NAME_MAX_LEN, TagsSeen};
 
-use crate::pins::Peripherals;
+use config::*;
+use pins::Peripherals;
 
 // RFC8449: TLS 1.3 encrypted records are limited to 16 KiB + 256 bytes.
 const MAX_ENCRYPTED_TLS_13_RECORD_SIZE: usize = 16640;
@@ -48,12 +49,6 @@ const TCP_BUFFER_SIZE: usize = 1024;
 const HTTP_BUFFER_SIZE: usize = 1024;
 
 const MAX_CONCURRENT_CONNECTIONS: usize = 2;
-
-const KUZZLE_ENDPOINT: &str = str_from_env!("KUZZLE_ENDPOINT", "Kuzzle endpoint to connect to.");
-const KUZZLE_TOKEN: &str = str_from_env!("KUZZLE_TOKEN", "Kuzzle token.");
-
-const BEARER_HEADER_VALUE: &str = const_str::format!("Bearer {}", KUZZLE_TOKEN);
-const TIME_BETWEEN_UPDATES: Duration = Duration::from_secs(360);
 
 async fn wait_for_decoded_message(mut uart: Uart<'_>) -> TagsSeen {
     let mut packet_buffer: Vec<u8, 8192> = Vec::new();
