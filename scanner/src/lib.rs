@@ -29,6 +29,9 @@ use embassy_time::{Duration, Instant, Timer};
 
 pub const CHANNEL_CAPACITY: usize = 32;
 
+// Remove this once we use a version of bt-hci that has the correct scale https://github.com/embassy-rs/bt-hci/pull/74.
+const BT_HCI_DURATION_COMPENSATION: u32 = 16;
+
 #[derive(Clone, Debug)]
 pub struct TagReport {
     pub addr: BdAddr,
@@ -68,6 +71,13 @@ impl TagScanner {
 
         let mut scanner = Scanner::new(host.central);
         let _ = join(host.runner.run_with_handler(&event_handler), async {
+            let config_interval = if interval <= Duration::from_secs(10) {
+                interval * BT_HCI_DURATION_COMPENSATION
+            } else {
+                Duration::from_secs(10 * BT_HCI_DURATION_COMPENSATION as u64)
+            };
+
+            let config_window = window * BT_HCI_DURATION_COMPENSATION;
             let config = ScanConfig::<'_> {
                 active: true,
                 phys: PhySet::M1,
@@ -76,15 +86,18 @@ impl TagScanner {
                 // Workaround is to multiply the value by 16.
 
                 // Max scan interval in the BLE spec is 10s.
-                interval,
+                interval: config_interval,
                 // Beacon advertising frequency is between 1Hz and 10Hz, staying up makes sure we can catch at least one advertisement.
-                window,
+                window: config_window,
                 ..Default::default()
             };
-            let mut _session = scanner.scan(&config).await.unwrap();
             // Scan forever
             loop {
-                Timer::after_secs(1000).await;
+                {
+                    let _session = scanner.scan(&config).await.unwrap();
+                    Timer::after(window).await
+                }
+                Timer::after(interval - window).await;
             }
         })
         .await;

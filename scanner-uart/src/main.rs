@@ -1,6 +1,7 @@
 #![no_main]
 #![no_std]
 
+mod config;
 mod pins;
 
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
@@ -13,7 +14,6 @@ use postcard::{
 };
 
 use ariel_os::{
-    config::str_from_env_or,
     gpio::{Input, Pull},
     identity::Eui48,
     log::{Debug2Format, error, info, warn},
@@ -21,6 +21,8 @@ use ariel_os::{
 };
 
 use common_types::{DetectedTag, MAX_SEEN, TagsSeen};
+
+use config::*;
 
 #[cfg(context = "nrf5340-net")]
 use embassy_nrf::peripherals::SERIAL0;
@@ -33,18 +35,6 @@ use embassy_nrf::{bind_interrupts, uarte};
 type TagStorageMap = FnvIndexMap<[u8; 3], TagReport, MAX_SEEN>;
 
 static SEEN: Mutex<CriticalSectionRawMutex, TagStorageMap> = Mutex::new(FnvIndexMap::new());
-
-const PREFIX_STR: &str = str_from_env_or!(
-    "TAG_PREFIX",
-    "CC:DD:EE",
-    "Filter out all BLE devices that don't have this prefix in their name"
-);
-
-const TAG_PREFIX: [u8; 3] = {
-    let mut eui48: [u8; 3] = const_str::hex!(const_str::replace!(PREFIX_STR, ":", ""));
-    eui48.reverse();
-    eui48
-};
 
 static TRACKER_SCANNER: TagScanner = TagScanner::new(TAG_PREFIX);
 
@@ -187,11 +177,5 @@ async fn run_scanner() {
 
     let host = ariel_os::ble::ble_stack().await.build();
 
-    TRACKER_SCANNER
-        .run(
-            host,
-            Duration::from_secs(10 * 16),
-            Duration::from_secs(2 * 16),
-        )
-        .await
+    TRACKER_SCANNER.run(host, SCAN_INTERVAL, SCAN_WINDOW).await
 }
