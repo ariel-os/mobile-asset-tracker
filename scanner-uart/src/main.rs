@@ -17,7 +17,7 @@ use ariel_os::{
     gpio::{Input, Pull},
     identity::Eui48,
     log::{Debug2Format, error, info, warn},
-    time::{Duration, Instant, Timer},
+    time::{Instant, Timer},
 };
 
 use common_types::{DetectedTag, MAX_SEEN, TagsSeen};
@@ -56,7 +56,7 @@ bind_interrupts!(struct Irqs {
 #[ariel_os::task(autostart)]
 async fn automatic_cleanup() {
     loop {
-        Timer::after_secs(30).await;
+        Timer::after(SCAN_INTERVAL).await;
         // Remove entries older than 10 minutes
         {
             let mut seen = SEEN.lock().await;
@@ -134,7 +134,7 @@ async fn send_scan_data(mut peripherals: pins::Peripherals) {
 /// Remove entries older than 10 minutes
 fn remove_old_entries(seen: &mut TagStorageMap) {
     let now = Instant::now();
-    seen.retain(|_, tag| now.duration_since(tag.timestamp) < Duration::from_secs(600));
+    seen.retain(|_, tag| now.duration_since(tag.timestamp) < SCAN_INTERVAL * 10);
 }
 
 fn remove_oldest_entry(seen: &mut TagStorageMap) {
