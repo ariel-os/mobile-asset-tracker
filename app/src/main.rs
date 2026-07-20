@@ -7,6 +7,22 @@ use embassy_nrf::pac::gpio::vals::Mcusel;
 #[ariel_os::task(autostart)]
 async fn main() {
     embassy_nrf::reset::hold_network_core();
+
+    // Use power switching regulators (DC/DC), reduces power consumption overall (around -10μA idle)
+
+    embassy_nrf::pac::REGULATORS
+        .vregradio()
+        .dcdcen()
+        .write(|w| w.set_dcdcen(true));
+    embassy_nrf::pac::REGULATORS
+        .vregmain()
+        .dcdcen()
+        .write(|w| w.set_dcdcen(true));
+    embassy_nrf::pac::REGULATORS
+        .vregh()
+        .dcdcen()
+        .write(|w| w.set_dcdcen(true));
+
     let gpio0 = embassy_nrf::pac::P0;
     let gpio1 = embassy_nrf::pac::P1;
 
