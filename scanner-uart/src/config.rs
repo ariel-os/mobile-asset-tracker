@@ -12,5 +12,5 @@ pub const TAG_PREFIX: [u8; 3] = {
     eui48
 };
 
-pub const SCAN_INTERVAL: Duration = Duration::from_secs(60);
+pub const SCAN_INTERVAL: Duration = Duration::from_secs(10);
 pub const SCAN_WINDOW: Duration = Duration::from_secs(2);
