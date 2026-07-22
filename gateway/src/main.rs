@@ -99,7 +99,9 @@ async fn gnss_runner() {
     // Single shot, give it 6 minutes to get a fix
 
     let mut config = ariel_os_sensor_nrf91_gnss::config::Config::default();
-    config.operation_mode = ariel_os_sensor_nrf91_gnss::config::GnssOperationMode::SingleShot(360);
+    config.operation_mode = ariel_os_sensor_nrf91_gnss::config::GnssOperationMode::SingleShot(
+        GNNS_AQUISITION_TIMEOUT_SEC,
+    );
     config.power_mode = ariel_os_sensor_nrf91_gnss::config::GnssPowerSaveMode::DutyCycling;
 
     sensors::NRF91_GNSS.init(config).await;
@@ -312,6 +314,17 @@ async fn updates(mut peripherals: Peripherals) {
                 led_red.set_high();
                 led_green.set_high();
                 led_blue.set_low();
+
+                // Exponential backoff.
+                if tries > 1 {
+                    let base = 2u16;
+
+                    // Maximum of 2**7 * 360 ~= 12hrs.
+                    Timer::after_secs(
+                        (GNNS_AQUISITION_TIMEOUT_SEC * base.pow(tries.min(7) as u32)) as u64,
+                    )
+                    .await;
+                }
             }
         }
 
