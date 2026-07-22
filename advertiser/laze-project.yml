@@ -5,8 +5,23 @@ imports:
       commit: d61880615147f39ecb1f7398e6b07c6864f8bc7a
     dldir: ariel-os
 
+modules:
+  - name: nrf-power-optimisation
+    env:
+      global:
+        FEATURES:
+          - nrf-power-optimisation
+
+    # boards confirmed to have a LC filter
+    context:
+      - nrf52840dk
+      - seeedstudio-xiao-nrf52840-plus
+      - adafruit-feather-nrf52840-express
+
+
 apps:
   - name: mobile-asset-tracker-advertiser
     selects:
       - ble-peripheral
       - ble-config-static-address
+      - ?nrf-power-optimisation
