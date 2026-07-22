@@ -18,6 +18,16 @@ modules:
       - seeedstudio-xiao-nrf52840-plus
       - adafruit-feather-nrf52840-express
 
+  - name: nrf-qspi-optimisation
+    env:
+      global:
+        FEATURES:
+          - nrf-qspi-optimisation
+
+    # boards with a QSPI flash
+    context:
+      - seeedstudio-xiao-nrf52840-plus
+      - adafruit-feather-nrf52840-express
 
 apps:
   - name: mobile-asset-tracker-advertiser
@@ -25,3 +35,4 @@ apps:
       - ble-peripheral
       - ble-config-static-address
       - ?nrf-power-optimisation
+      - ?nrf-qspi-optimisation

@@ -21,3 +21,4 @@ unexpected_cfgs = { level = "warn", check-cfg = [
 
 default = []
 nrf-power-optimisation = ["dep:embassy-nrf"]
+nrf-qspi-optimisation = ["dep:embassy-nrf"]

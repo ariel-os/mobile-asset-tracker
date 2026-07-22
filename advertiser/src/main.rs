@@ -3,9 +3,15 @@
 #![no_std]
 
 mod config;
+mod pins;
 
 use ariel_os::{log::info, reexports::embassy_time, time::Timer};
 use embassy_futures::join::join;
+#[cfg(all(context = "nrf52840", feature = "nrf-qspi-optimisation"))]
+use embassy_nrf::{
+    bind_interrupts, peripherals,
+    qspi::{self, Frequency},
+};
 use embassy_time::Duration;
 use trouble_host::advertise::{
     AdStructure, Advertisement, AdvertisementParameters, BR_EDR_NOT_SUPPORTED,
@@ -13,6 +19,38 @@ use trouble_host::advertise::{
 };
 
 use config::*;
+
+#[cfg(all(context = "nrf52840", feature = "nrf-qspi-optimisation"))]
+bind_interrupts!(struct Irqs {
+    QSPI => qspi::InterruptHandler<peripherals::QSPI>;
+});
+
+#[cfg(all(context = "nrf52840", feature = "nrf-qspi-optimisation"))]
+#[ariel_os::task(autostart, peripherals)]
+async fn disable_flash(peripherals: pins::Peripherals) {
+    let mut config = qspi::Config::default();
+    config.capacity = 2 * 1024 * 1024; // 2 MB
+    config.frequency = Frequency::M32;
+    config.deep_power_down = Some(qspi::DeepPowerDownConfig {
+        // Arbitrary values, we don't use the flash.
+        enter_time: 3,
+        exit_time: 3,
+    });
+
+    let _q = qspi::Qspi::new(
+        peripherals.instance,
+        Irqs,
+        peripherals.spi_sck,
+        peripherals.spi_cs,
+        peripherals.spi_io0,
+        peripherals.spi_io1,
+        peripherals.spi_io2,
+        peripherals.spi_io3,
+        config,
+    );
+
+    // Drop the instance to power down the peripherals.
+}
 
 #[ariel_os::task(autostart)]
 async fn run_advertisement() {
