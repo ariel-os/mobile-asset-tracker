@@ -9,6 +9,7 @@ extern crate alloc;
 
 use core::str::FromStr as _;
 
+use embassy_futures::select::Either;
 use embassy_net::{
     dns::DnsSocket,
     tcp::client::{TcpClient, TcpClientState},
@@ -35,7 +36,7 @@ use ariel_os_sensors_gnss_time_ext::GnssTimeExt as _;
 use common_types::{DetectedTag, GatewayUpdate, Location, TAG_NAME_MAX_LEN, TagsSeen};
 
 use config::*;
-use pins::Peripherals;
+use pins::{LedPeripherals, Peripherals};
 
 // RFC8449: TLS 1.3 encrypted records are limited to 16 KiB + 256 bytes.
 const MAX_ENCRYPTED_TLS_13_RECORD_SIZE: usize = 16640;
@@ -50,6 +51,84 @@ const HTTP_BUFFER_SIZE: usize = 1024;
 
 const MAX_CONCURRENT_CONNECTIONS: usize = 2;
 
+static LED_STATE_CHANNEL: embassy_sync::channel::Channel<CriticalSectionRawMutex, LedState, 1> =
+    embassy_sync::channel::Channel::new();
+
+enum LedState {
+    // Blue
+    Waiting,
+    // Cyan
+    GnssAcquisition,
+    // Yellow
+    GnssWarning,
+    /// Reading uart for BLE devices.
+    // Purple
+    ReadingUart,
+    // White
+    WaitingNetwork,
+    // Green
+    NetworkCommunication,
+}
+
+impl LedState {
+    pub fn leds(&self) -> (bool, bool, bool) {
+        match self {
+            LedState::Waiting => (false, false, true),
+            LedState::GnssAcquisition => (false, true, true),
+            LedState::GnssWarning => (true, true, false),
+            LedState::ReadingUart => (true, false, true),
+            LedState::WaitingNetwork => (true, true, true),
+            LedState::NetworkCommunication => (false, true, false),
+        }
+    }
+}
+
+#[ariel_os::task(autostart, peripherals)]
+async fn leds(peripherals: LedPeripherals) {
+    let mut led_green = Output::new(peripherals.led_green, Level::Low);
+    let mut led_blue = Output::new(peripherals.led_blue, Level::Low);
+    let mut led_red = Output::new(peripherals.led_red, Level::Low);
+
+    led_red.set_high();
+    led_green.set_high();
+    led_blue.set_high();
+    Timer::after_millis(500).await;
+    led_red.set_high();
+    led_green.set_low();
+    led_blue.set_high();
+    Timer::after_millis(500).await;
+    led_red.set_low();
+    led_green.set_high();
+    led_blue.set_high();
+    Timer::after_millis(500).await;
+
+    let mut leds = (true, false, false);
+    let mut next_phase = true;
+    let mut next_wait = LED_ON_DURATION;
+
+    loop {
+        if let Either::First(status) =
+            embassy_futures::select::select(LED_STATE_CHANNEL.receive(), Timer::after(next_wait))
+                .await
+        {
+            leds = status.leds();
+            next_phase = true;
+        }
+        if next_phase {
+            led_red.set_level(leds.0.into());
+            led_green.set_level(leds.1.into());
+            led_blue.set_level(leds.2.into());
+            next_wait = LED_ON_DURATION;
+        } else {
+            led_red.set_low();
+            led_green.set_low();
+            led_blue.set_low();
+            next_wait = LED_OFF_DURATION;
+        }
+
+        next_phase = !next_phase;
+    }
+}
 async fn wait_for_decoded_message(mut uart: Uart<'_>) -> TagsSeen {
     let mut packet_buffer: Vec<u8, 8192> = Vec::new();
 
@@ -228,27 +307,10 @@ async fn updates(mut peripherals: Peripherals) {
 
     info!("Device ID: {}", device_id.as_str());
 
-    let mut led_green = Output::new(peripherals.user_interaction.led_green, Level::Low);
     let mut btn1 = Input::builder(peripherals.user_interaction.btn1, Pull::Up)
         .build_with_interrupt()
         .unwrap();
-    let mut led_blue = Output::new(peripherals.user_interaction.led_blue, Level::Low);
-    let mut led_red = Output::new(peripherals.user_interaction.led_red, Level::Low);
-
     let mut uart_request = Output::new(peripherals.uart.request, Level::Low);
-
-    led_red.set_high();
-    led_green.set_high();
-    led_blue.set_high();
-    Timer::after_millis(500).await;
-    led_red.set_high();
-    led_green.set_low();
-    led_blue.set_high();
-    Timer::after_millis(500).await;
-    led_red.set_low();
-    led_green.set_high();
-    led_blue.set_high();
-    Timer::after_millis(500).await;
 
     ltem::disable();
 
@@ -263,9 +325,7 @@ async fn updates(mut peripherals: Peripherals) {
         info!("Waiting before sending next update...");
 
         // Showing blue: waiting
-        led_red.set_low();
-        led_green.set_low();
-        led_blue.set_high();
+        let _ = LED_STATE_CHANNEL.try_send(LedState::Waiting);
 
         // Try to send an update every TIME_BETWEEN_UPDATES, waiting for a gnss fix may make the duration between updates longer.
 
@@ -288,13 +348,12 @@ async fn updates(mut peripherals: Peripherals) {
         ltem::disable();
 
         // Now cyan/light blue, GNSS aquisition in progress
-        led_red.set_low();
-        led_green.set_high();
-        led_blue.set_high();
+        let _ = LED_STATE_CHANNEL.try_send(LedState::GnssAcquisition);
 
         info!("Requesting GNSS location");
 
         let mut location;
+        let mut tries = 0;
         loop {
             location = match get_location().await {
                 Ok(loc) => Some(loc),
@@ -307,13 +366,12 @@ async fn updates(mut peripherals: Peripherals) {
                     None
                 }
             };
+            tries += 1;
             if location.is_some() {
                 break;
             } else {
                 // Color is now yellow, GNSS fix has failed at least once.
-                led_red.set_high();
-                led_green.set_high();
-                led_blue.set_low();
+                let _ = LED_STATE_CHANNEL.try_send(LedState::GnssWarning);
 
                 // Exponential backoff.
                 if tries > 1 {
@@ -329,9 +387,7 @@ async fn updates(mut peripherals: Peripherals) {
         }
 
         // Purple, receiving BLE devices from nRF5340
-        led_red.set_high();
-        led_green.set_low();
-        led_blue.set_high();
+        let _ = LED_STATE_CHANNEL.try_send(LedState::ReadingUart);
 
         let detected_tags = {
             let uart = pins::ReceiverUart::new(
@@ -355,9 +411,7 @@ async fn updates(mut peripherals: Peripherals) {
         info!("Enabling cellular networking");
 
         // White, enabling LTE-M
-        led_red.set_high();
-        led_green.set_high();
-        led_blue.set_high();
+        let _ = LED_STATE_CHANNEL.try_send(LedState::WaitingNetwork);
 
         ltem::enable();
         stack.wait_link_up().await;
@@ -365,9 +419,7 @@ async fn updates(mut peripherals: Peripherals) {
         info!("Cellular networking up");
 
         // Green: CoAP communication in progress
-        led_red.set_low();
-        led_green.set_high();
-        led_blue.set_low();
+        let _ = LED_STATE_CHANNEL.try_send(LedState::NetworkCommunication);
 
         debug!("Updating detected tags age");
 

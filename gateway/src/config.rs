@@ -9,3 +9,6 @@ pub const BEARER_HEADER_VALUE: &str = const_str::format!("Bearer {}", KUZZLE_TOK
 pub const TIME_BETWEEN_UPDATES: Duration = Duration::from_secs(15 * 60);
 
 pub const GNNS_AQUISITION_TIMEOUT_SEC: u16 = 360;
+
+pub const LED_OFF_DURATION: Duration = Duration::from_secs(2);
+pub const LED_ON_DURATION: Duration = Duration::from_millis(200);
