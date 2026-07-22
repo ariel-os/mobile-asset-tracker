@@ -19,6 +19,11 @@ const ADVERTISEMENT_INTERVAL: u64 = 500;
 
 #[ariel_os::task(autostart)]
 async fn run_advertisement() {
+    #[cfg(all(context = "nrf52840", feature = "nrf-power-optimisation"))]
+    embassy_nrf::pac::POWER
+        .dcdcen()
+        .write(|w| w.set_dcdcen(true));
+
     info!("starting ble stack");
     let stack = ariel_os::ble::ble_stack().await;
     let mut host = stack.build();
