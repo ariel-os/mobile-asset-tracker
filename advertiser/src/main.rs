@@ -11,10 +11,12 @@ use ariel_os::{
     time::Timer,
 };
 use embassy_futures::join::join;
-use embassy_nrf::{bind_interrupts, peripherals, spim};
+#[cfg(all(context = "nrf52840", feature = "nrf-power-optimisation"))]
+use embassy_nrf::{
+    bind_interrupts, peripherals,
+    qspi::{self, Frequency},
+};
 use embassy_time::Duration;
-use embedded_hal_async::spi::SpiDevice as _;
-use embedded_hal_bus::spi::ExclusiveDevice;
 use heapless::Vec;
 use trouble_host::advertise::{
     AdStructure, Advertisement, AdvertisementParameters, BR_EDR_NOT_SUPPORTED,
@@ -26,10 +28,13 @@ const TAG_NAME: &str =
 
 // Advertisement interval in ms.
 const ADVERTISEMENT_INTERVAL: u64 = 500;
+
+#[cfg(all(context = "nrf52840", feature = "nrf-power-optimisation"))]
 bind_interrupts!(struct Irqs {
-    SPIM3 => spim::InterruptHandler<peripherals::SPI3>;
+    QSPI => qspi::InterruptHandler<peripherals::QSPI>;
 });
 
+#[cfg(all(context = "nrf52840", feature = "nrf-power-optimisation"))]
 #[ariel_os::task(autostart, peripherals)]
 async fn disable_flash(peripherals: pins::Peripherals) {
     let mut spi_config = embassy_nrf::spim::Config::default();
@@ -38,26 +43,30 @@ async fn disable_flash(peripherals: pins::Peripherals) {
         Debug2Format(&spi_config.frequency)
     );
 
-    let mut id = [0; 3];
     {
-        let spi_bus = embassy_nrf::spim::Spim::new(
+        let mut config = qspi::Config::default();
+        config.capacity = 2 * 1024 * 1024; // 2 MB
+        config.frequency = Frequency::M32;
+        config.deep_power_down = Some(qspi::DeepPowerDownConfig {
+            // Arbitrary values, we don't use the flash.
+            enter_time: 3,
+            exit_time: 3,
+        });
+
+        let q = qspi::Qspi::new(
             peripherals.instance,
             Irqs,
             peripherals.spi_sck,
-            peripherals.spi_miso,
-            peripherals.spi_mosi,
-            spi_config,
+            peripherals.spi_cs,
+            peripherals.spi_io0,
+            peripherals.spi_io1,
+            peripherals.spi_io2,
+            peripherals.spi_io3,
+            config,
         );
-        let spi_bus = spi_bus;
 
-        let cs_output = gpio::Output::new(peripherals.spi_cs, gpio::Level::High);
-        let mut spi_device = ExclusiveDevice::new_no_delay(spi_bus, cs_output).unwrap();
-
-        // Deep sleep.
-        spi_device.write(&[0xb9]).await.unwrap();
+        // Drop the instance to power down the peripherals.
     }
-
-    info!("id: {:?}", id);
 }
 
 #[ariel_os::task(autostart)]
