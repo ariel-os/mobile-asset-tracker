@@ -12,8 +12,9 @@ ariel_os::hal::define_peripherals!(UartPeripherals {
 });
 
 #[cfg(context = "nordic-thingy-91-x-nrf9151")]
-ariel_os::hal::define_peripherals!(UiPeripherals {
-    btn1: P0_26,
+ariel_os::hal::define_peripherals!(UiPeripherals { btn1: P0_26 });
+#[cfg(context = "nordic-thingy-91-x-nrf9151")]
+ariel_os::hal::define_peripherals!(LedPeripherals {
     led_green: P0_31,
     led_blue: P0_30,
     led_red: P0_29
