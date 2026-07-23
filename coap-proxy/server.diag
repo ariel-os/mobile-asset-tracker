@@ -1,14 +1,24 @@
 {
-  "coap://*": {
-    "edhoc-oscore": {
-      "suite": 2,
-      "method": 3,
-      "own_cred_style": "by-key-id",
-      "own_cred": {14:{8:{1:{1:2,2:h'1a',-1:1,-2:h'010d8535dd44b6a3eb306d976e0bfa33fa5334e2798cca7e4c97ed12f97b0468',-3:h'6eb4420b3457c5f86e5e8ac1063f0c4bc3aaf05d8c26a851db16fbaaced24636'}}}},
-      "private_key_file": "server.cosekey",
-      "peer_cred": {
-            "unauthenticated": true
-      }
+    "coap://*":{
+        "edhoc-oscore":{
+            "suite":2,
+            "method":3,
+            "own_cred":{
+                14:{
+                    8:{
+                        1:{
+                            1:2,
+                            2:h'1a',
+                            -1:1,
+                            -2:h'550f185ea65de43de79e288602400c37b5cff0c9cbe0c4d3d534d44709cd7848',
+                            -3:h'c8bcb30fd5908f39d921b44b9fb609da8dd966a49be79e2ce64d6340a74c7f71'
+                        }
+                    }
+                }
+            },
+            "peer_cred":{"unauthenticated": true},
+            "own_cred_style":"by-key-id",
+            "private_key_file":"server.cosekey"
+        }
     }
-  }
 }
