@@ -78,8 +78,8 @@ def convert_detected_tags(cbor: list):
     for tag_cbor in cbor:
         tag_out: dict[str, Any] = dict()
         tag_out["id"] = tag_cbor[0]
-        tag_out["age"] = tag_cbor[1]
-        tag_out["rssi"] = tag_cbor[2]
+        tag_out["age"] = tag_cbor[2]
+        tag_out["rssi"] = tag_cbor[3]
 
         out.append(tag_out)
 
