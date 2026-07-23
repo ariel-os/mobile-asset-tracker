@@ -613,6 +613,13 @@ dependencies = [
  "ariel-os-boards",
  "ariel-os-sensor-nrf91-gnss",
  "ariel-os-sensors-gnss-time-ext",
+ "coap-handler",
+ "coap-handler-implementations",
+ "coap-message",
+ "coap-message-utils",
+ "coap-numbers",
+ "coap-request",
+ "coap-request-implementations",
  "common-types",
  "const-str",
  "der 0.8.0",
@@ -620,13 +627,16 @@ dependencies = [
  "embassy-nrf",
  "embassy-sync 0.7.2",
  "embedded-io-async 0.6.1",
+ "embedded-nal-coap",
  "heapless 0.9.3",
  "linkme",
+ "minicbor",
  "postcard",
  "rand_core 0.6.4",
  "reqwless",
  "serde",
  "serde_json",
+ "static_cell",
 ]
 
 [[package]]
@@ -668,6 +678,15 @@ name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
+
+[[package]]
+name = "cboritem"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e3c9350d61c6316b5272d458c213ce8377b79bb202f2eb1a924db1985b53fa0"
+dependencies = [
+ "document-features",
+]
 
 [[package]]
 name = "cc"
@@ -716,6 +735,99 @@ dependencies = [
 ]
 
 [[package]]
+name = "coap-handler"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "503c04616163d1b4912e3e780d60d1defbe483e62e953dd9ebe74a3644ab4b96"
+dependencies = [
+ "coap-message",
+ "coap-numbers",
+]
+
+[[package]]
+name = "coap-handler-implementations"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4321b85ff2233a4f34256c969bf123adfe4734f75c6b2b50371fb2ba267e308c"
+dependencies = [
+ "coap-handler",
+ "coap-message",
+ "coap-message-utils",
+ "coap-numbers",
+ "crc",
+ "document-features",
+ "embedded-io 0.7.1",
+ "embedded-io-adapters",
+ "extra-embedded-io-adapters",
+ "minicbor",
+ "minicbor-adapters",
+ "tee-embedded-io",
+ "windowed-infinity",
+]
+
+[[package]]
+name = "coap-message"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5716ce4b1742dcb19c3a0afa4837a7052b4a7f13a2bd71cd28a05e90877377d4"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
+name = "coap-message-implementations"
+version = "0.1.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bdb7c067717d365997c72f8ed9ae484baff6d4df9f9ea53adb469bceedbd37c4"
+dependencies = [
+ "coap-message",
+ "coap-message-utils",
+ "coap-numbers",
+ "document-features",
+ "heapless 0.9.3",
+ "thiserror",
+]
+
+[[package]]
+name = "coap-message-utils"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e6b17f1db1e77a315a5c15d420f667e178f45ba17d2f4465c269343a71e58b7"
+dependencies = [
+ "coap-message",
+ "coap-numbers",
+ "document-features",
+ "minicbor",
+]
+
+[[package]]
+name = "coap-numbers"
+version = "0.2.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6d5b04de3acac56ffbd330e474b8e7ac8b45229b97e7e5bcbc9ac8710abd5d9"
+
+[[package]]
+name = "coap-request"
+version = "0.2.0-alpha.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58d76d947d49b867e8f0268cbd690156fe506335247b538284551fe404d2d16c"
+dependencies = [
+ "coap-message",
+]
+
+[[package]]
+name = "coap-request-implementations"
+version = "0.1.0-alpha.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc15c3be00d32fe7c2b58a7546eff18fb1f3e7d2dea74d91eaacd4346960851f"
+dependencies = [
+ "coap-message",
+ "coap-message-utils",
+ "coap-numbers",
+ "coap-request",
+]
+
+[[package]]
 name = "cobs"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -739,6 +851,8 @@ name = "common-types"
 version = "0.1.0"
 dependencies = [
  "heapless 0.9.3",
+ "minicbor",
+ "minicbor-adapters",
  "postcard",
  "serde",
 ]
@@ -848,6 +962,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "crc"
+version = "3.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5eb8a2a1cd12ab0d987a5d5e825195d372001a4094a0376319d5a0ad71c1ba0d"
+dependencies = [
+ "crc-catalog",
+]
+
+[[package]]
 name = "crc-any"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -855,6 +978,12 @@ checksum = "a62ec9ff5f7965e4d7280bd5482acd20aadb50d632cf6c1d74493856b011fa73"
 dependencies = [
  "debug-helper",
 ]
+
+[[package]]
+name = "crc-catalog"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "217698eaf96b4a3f0bc4f3662aaa55bdf913cd54d7204591faa790070c6d0853"
 
 [[package]]
 name = "critical-section"
@@ -1277,7 +1406,7 @@ dependencies = [
  "embassy-sync 0.8.0",
  "embassy-time",
  "embedded-io-async 0.7.0",
- "embedded-nal-async",
+ "embedded-nal-async 0.9.0",
  "heapless 0.9.3",
  "managed",
  "smoltcp",
@@ -1614,6 +1743,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9eb1aa714776b75c7e67e1da744b81a129b3ff919c8712b5e1b32252c1f07cc7"
 
 [[package]]
+name = "embedded-io-adapters"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c900a1c087f1f7d17cdc84a1290df91521cd90933efa76d68e568385d889f2f4"
+dependencies = [
+ "embedded-io 0.7.1",
+]
+
+[[package]]
 name = "embedded-io-async"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1642,12 +1780,40 @@ dependencies = [
 
 [[package]]
 name = "embedded-nal-async"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76959917cd2b86f40a98c28dd5624eddd1fa69d746241c8257eac428d83cb211"
+dependencies = [
+ "embedded-io-async 0.6.1",
+ "embedded-nal",
+]
+
+[[package]]
+name = "embedded-nal-async"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb5a1bd585135d302f8f6d7de329310938093da6271b37a6c94b8798795c0c6d"
 dependencies = [
  "embedded-io-async 0.7.0",
  "embedded-nal",
+]
+
+[[package]]
+name = "embedded-nal-coap"
+version = "0.1.0-alpha.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3a62b6f33c568ccdf95270354e050f4794233fbbaf0d358217cd82bdef45a6b"
+dependencies = [
+ "coap-handler",
+ "coap-message",
+ "coap-message-implementations",
+ "coap-numbers",
+ "coap-request",
+ "embassy-futures",
+ "embassy-sync 0.7.2",
+ "embedded-nal-async 0.8.0",
+ "heapless 0.9.3",
+ "rand_core 0.9.5",
 ]
 
 [[package]]
@@ -1974,6 +2140,17 @@ checksum = "1810d8ee4845ef87542af981e38eb80ab531d0ef1061e1486014ab7af74c337a"
 dependencies = [
  "critical-section",
  "vcell",
+]
+
+[[package]]
+name = "extra-embedded-io-adapters"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41b7942b8008547a00ed47550218a6d56314c9984b8ab969db62ecb87fbc13ff"
+dependencies = [
+ "crc",
+ "digest",
+ "embedded-io 0.7.1",
 ]
 
 [[package]]
@@ -2603,6 +2780,38 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "88904434abc2901f197fe8cc55f0445e7ded921dba5911dad2e2b39b48e663c4"
 
 [[package]]
+name = "minicbor"
+version = "2.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9a1119e42fbacc2bb65d860de6eb7c930562bc71d42dca026d06b0228231f77"
+dependencies = [
+ "minicbor-derive",
+]
+
+[[package]]
+name = "minicbor-adapters"
+version = "0.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3658ff955d05287ab2d54356081d34ecfbd0c02c3b319f8561d95cb79d43021"
+dependencies = [
+ "cboritem",
+ "embedded-io 0.7.1",
+ "heapless 0.9.3",
+ "minicbor",
+]
+
+[[package]]
+name = "minicbor-derive"
+version = "0.18.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50fcf6ee04e942da7d65066bf427fe7bdd229256998809eeecee25db6dc9aac2"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.118",
+]
+
+[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3200,7 +3409,7 @@ dependencies = [
  "buffered-io",
  "embedded-io 0.7.1",
  "embedded-io-async 0.7.0",
- "embedded-nal-async",
+ "embedded-nal-async 0.9.0",
  "embedded-tls",
  "heapless 0.9.3",
  "hex",
@@ -3788,6 +3997,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tee-embedded-io"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4040e9295b6bc2865a3e0c07c98ab4a2261a6321d5eab16466ccce984f540c3"
+dependencies = [
+ "embedded-io 0.7.1",
+]
+
+[[package]]
 name = "term"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4001,6 +4219,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
  "windows-sys",
+]
+
+[[package]]
+name = "windowed-infinity"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6aad0911b4b6516712a138831af937bfef95015f649c9877d8ba84707a72ec4"
+dependencies = [
+ "embedded-io 0.7.1",
 ]
 
 [[package]]
