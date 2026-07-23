@@ -1,7 +1,11 @@
 #![no_main]
 #![no_std]
 mod board;
+#[cfg(feature = "coap-backend")]
+mod coap;
 mod config;
+#[cfg(feature = "http-backend")]
+mod http;
 mod pins;
 mod sensors;
 
@@ -10,23 +14,15 @@ extern crate alloc;
 use core::str::FromStr as _;
 
 use embassy_futures::select::Either;
-use embassy_net::{
-    dns::DnsSocket,
-    tcp::client::{TcpClient, TcpClientState},
-};
+
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embedded_io_async::BufRead;
 use heapless::{String, Vec};
-use reqwless::{
-    client::{HttpClient, TlsConfig, TlsVerify},
-    headers::ContentType,
-    request::{Method, RequestBuilder},
-};
 
 use ariel_os::{
     gpio::{Input, Level, Output, Pull},
     hal::{self, ltem, uart::Uart},
     log::{Debug2Format, debug, error, info, warn},
-    reexports::embassy_net,
     sensors::{Label, Reading, Sensor, sensor::ReadingError},
     time::{Duration, Instant, Timer},
     uart::Baudrate,
@@ -37,19 +33,6 @@ use common_types::{DetectedTag, GatewayUpdate, Location, TAG_NAME_MAX_LEN, TagsS
 
 use config::*;
 use pins::{LedPeripherals, Peripherals};
-
-// RFC8449: TLS 1.3 encrypted records are limited to 16 KiB + 256 bytes.
-const MAX_ENCRYPTED_TLS_13_RECORD_SIZE: usize = 16640;
-// Required by `embedded_tls::TlsConnection::new()`.
-const TLS_READ_BUFFER_SIZE: usize = MAX_ENCRYPTED_TLS_13_RECORD_SIZE;
-// Can be smaller than the read buffer (could be adjusted: trade-off between memory usage and not
-// splitting large writes into multiple records).
-const TLS_WRITE_BUFFER_SIZE: usize = 4096;
-
-const TCP_BUFFER_SIZE: usize = 1024;
-const HTTP_BUFFER_SIZE: usize = 1024;
-
-const MAX_CONCURRENT_CONNECTIONS: usize = 2;
 
 static LED_STATE_CHANNEL: embassy_sync::channel::Channel<CriticalSectionRawMutex, LedState, 1> =
     embassy_sync::channel::Channel::new();
@@ -280,26 +263,10 @@ async fn get_location() -> Result<Location, UpdateLocationError> {
 #[ariel_os::task(autostart, peripherals)]
 async fn updates(mut peripherals: Peripherals) {
     let stack = ariel_os::net::network_stack().await.unwrap();
+    #[cfg(feature = "http-backend")]
+    let mut client = http::create_http_client(stack).await;
 
-    // initialisation du client HTTP
-    let tcp_client_state =
-        TcpClientState::<MAX_CONCURRENT_CONNECTIONS, TCP_BUFFER_SIZE, TCP_BUFFER_SIZE>::new();
-    let tcp_client = TcpClient::new(stack, &tcp_client_state);
-    let dns_client = DnsSocket::new(stack);
-
-    let tls_seed: u64 = rand_core::RngCore::next_u64(&mut ariel_os::random::crypto_rng());
-
-    let mut tls_rx_buffer = [0; TLS_READ_BUFFER_SIZE];
-    let mut tls_tx_buffer = [0; TLS_WRITE_BUFFER_SIZE];
-
-    // We do not authenticate the server in this example, as that would require setting up a PSK
-    // with the server.
-    let tls_verify = TlsVerify::None;
-    let tls_config = TlsConfig::new(tls_seed, &mut tls_rx_buffer, &mut tls_tx_buffer, tls_verify);
-
-    let mut client = HttpClient::new_with_tls(&tcp_client, &dns_client, tls_config);
-
-    let mut last_update_timestamp = Instant::from_ticks(0);
+    let mut last_update_start_timestamp = Instant::from_ticks(0);
 
     let device_id: String<TAG_NAME_MAX_LEN> = ariel_os::identity::interface_eui48(1)
         .map(|eui| heapless::format!("{}", eui).unwrap())
@@ -330,19 +297,25 @@ async fn updates(mut peripherals: Peripherals) {
         // Try to send an update every TIME_BETWEEN_UPDATES, waiting for a gnss fix may make the duration between updates longer.
 
         let duration_to_wait = TIME_BETWEEN_UPDATES
-            .checked_sub(last_update_timestamp.elapsed())
+            .checked_sub(last_update_start_timestamp.elapsed())
             .unwrap_or(Duration::from_ticks(0));
 
         if duration_to_wait.as_ticks() > 0 {
-            let _ =
-                embassy_futures::select::select(btn1.wait_for_low(), Timer::after_secs(360)).await;
+            let _ = embassy_futures::select::select(
+                btn1.wait_for_low(),
+                Timer::after(duration_to_wait),
+            )
+            .await;
         }
 
         // Prevent sending updates too frequently
-        if last_update_timestamp.elapsed() < Duration::from_secs(10) {
+        if last_update_start_timestamp.elapsed() < Duration::from_secs(10) {
             warn!("Update skipped to avoid sending updates too frequently");
             continue;
         }
+
+        last_update_start_timestamp = Instant::now();
+
 
         // Make sure LTEM is disabled
         ltem::disable();
@@ -450,77 +423,42 @@ async fn updates(mut peripherals: Peripherals) {
             timestamp: location.map(|l| l.time_of_fix).unwrap_or(0),
         };
 
-        debug!("Serializing response");
-
-        let body = match serde_json::to_vec(&update) {
-            Ok(b) => b,
-            Err(e) => {
-                error!("Failed to serialize update to JSON: {:?}", Debug2Format(&e));
-                continue;
-            }
-        };
-
-        info!(
-            "json : {:?}",
-            Debug2Format(&serde_json::to_string(&update).unwrap())
-        );
-
-        debug!("Sending request");
-        if let Err(err) =
-            send_kuzzle_post_request(&mut client, KUZZLE_ENDPOINT, body.as_slice()).await
+        #[cfg(feature = "coap-backend")]
         {
-            error!(
-                "Error while sending an HTTP request: {:?}",
-                Debug2Format(&err)
+            coap::send_update(update).await
+        }
+
+        #[cfg(feature = "http-backend")]
+        {
+            debug!("Serializing response");
+
+            let body = match serde_json::to_vec(&update) {
+                Ok(b) => b,
+                Err(e) => {
+                    error!("Failed to serialize update to JSON: {:?}", Debug2Format(&e));
+                    continue;
+                }
+            };
+
+            info!(
+                "json : {:?}",
+                Debug2Format(&serde_json::to_string(&update).unwrap())
             );
+
+            debug!("Sending request");
+            if let Err(err) =
+                http::send_kuzzle_post_request(&mut client, KUZZLE_ENDPOINT, body.as_slice()).await
+            {
+                error!(
+                    "Error while sending an HTTP request: {:?}",
+                    Debug2Format(&err)
+                );
+            }
         }
 
         debug!("Update sent to backend");
 
-        last_update_timestamp = Instant::now();
-
         ltem::disable();
         // stack.wait_link_down().await;
     }
-}
-
-async fn send_kuzzle_post_request(
-    client: &mut HttpClient<'_, TcpClient<'_, MAX_CONCURRENT_CONNECTIONS>, DnsSocket<'_>>,
-    url: &str,
-    body: &[u8],
-) -> Result<(), reqwless::Error> {
-    let mut http_rx_buf = [0; HTTP_BUFFER_SIZE];
-
-    let headers = [("Authorization", BEARER_HEADER_VALUE)];
-
-    debug!("Creating handle, body len {}", body.len());
-
-    let mut handle = client
-        .request(Method::POST, url)
-        .await?
-        .headers(&headers)
-        .body(body)
-        .content_type(ContentType::ApplicationJson);
-
-    debug!("Executing request");
-
-    let response = handle.send(&mut http_rx_buf).await?;
-
-    info!("Response status: {}", response.status.0);
-
-    if let Some(ref content_type) = response.content_type {
-        info!("Response Content-Type: {}", content_type.as_str());
-    }
-
-    if let Ok(body) = response.body().read_to_end().await {
-        if let Ok(body) = core::str::from_utf8(&body) {
-            info!("Response body:\n{}", body);
-        } else {
-            info!("Received a response body, but it is not valid UTF-8");
-        }
-    } else {
-        info!("No response body");
-    }
-
-    Ok(())
 }

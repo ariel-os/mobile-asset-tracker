@@ -18,10 +18,8 @@ apps:
       - nrf91-modem
       - ltem-nrf-modem
       - network
-#      - coap-client
-#      - coap-server
-#      - coap-server-config-storage
       - random
+      - ?coap-backend
 
 modules:
   - name: fake-position
@@ -29,3 +27,21 @@ modules:
       global:
         FEATURES:
           - fake-position
+  - name: http-backend
+    conflicts:
+      - coap-backend
+    env:
+      global:
+        FEATURES:
+          - http-backend
+  - name: coap-backend
+    conflicts:
+      - http-backend
+    selects:
+      - coap-client
+      - coap-server
+      - coap-server-config-storage
+    env:
+      global:
+        FEATURES:
+          - coap-backend
