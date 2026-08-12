@@ -65,6 +65,12 @@ It is responsible for aggregating the information and sending it to the server.
   3. Prepare the payload to send
   4. Power up LTE-M and send a POST request to the backend.
 
+### Advertiser
+
+`advertiser/` directory.
+
+This is the firmware that runs on the BLE tags, advertising with a static address and icluding a sequence number in the advertisement.
+
 ### Common types
 
 `common-types/` contains the types that are sent through communication channels (UART, networking).
