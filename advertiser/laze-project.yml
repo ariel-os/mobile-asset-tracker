@@ -1,0 +1,12 @@
+imports:
+  - git:
+      url: https://github.com/ariel-os/ariel-os
+      # static address
+      commit: d61880615147f39ecb1f7398e6b07c6864f8bc7a
+    dldir: ariel-os
+
+apps:
+  - name: mobile-asset-tracker-advertiser
+    selects:
+      - ble-peripheral
+      - ble-config-static-address
