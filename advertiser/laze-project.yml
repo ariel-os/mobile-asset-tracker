@@ -36,3 +36,7 @@ apps:
       - ble-config-static-address
       - ?nrf-power-optimisation
       - ?nrf-qspi-optimisation
+    env:
+      global:
+        executor_stacksize_required:
+          - "32768"
