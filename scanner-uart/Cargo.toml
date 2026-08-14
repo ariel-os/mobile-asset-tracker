@@ -34,3 +34,6 @@ embassy-nrf = { version = "0.8.0", features = ["nfc-pins-as-gpio", "nrf52832"] }
 unexpected_cfgs = { level = "warn", check-cfg = [
   'cfg(context, values(any()))',
 ] }
+
+[patch.crates-io]
+trouble-host = { git = "https://github.com/nponsard/trouble.git", rev = "e4cf1633d527fd0c2df3e8b469e4731dd4f319e8" }

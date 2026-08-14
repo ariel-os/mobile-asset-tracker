@@ -10,7 +10,7 @@ apps:
     env:
       global:
         executor_stacksize_required:
-          - "65536"
+          - "72000"
     selects:
       - ble-central
       - network
