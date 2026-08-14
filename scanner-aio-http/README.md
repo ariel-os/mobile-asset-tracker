@@ -11,5 +11,5 @@ For devices that use wifi for networking, you also need to set `CONFIG_WIFI_NETW
 Example for a xiao esp32c6 (wifi):
 
 ```sh
-CONFIG_WIFI_NETWORK=my_network CONFIG_WIFI_PASSWORD=my_network_password BACKEND_ENDPOINT=192.168.1.16:3000/advertisement TAG_PREFIX=CC::BB::AA SNIFFER_ID=sniffer-1 laze build -b seeedstudio-xiao-esp32c6 run
+CONFIG_WIFI_NETWORK=my_network CONFIG_WIFI_PASSWORD=my_network_password BACKEND_ENDPOINT=http://192.168.1.16:3000/advertisement TAG_PREFIX=CC::DD::EE SNIFFER_ID=sniffer-1 laze build -b seeedstudio-xiao-esp32c6 run
 ```
