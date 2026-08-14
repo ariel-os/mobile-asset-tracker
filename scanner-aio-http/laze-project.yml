@@ -4,6 +4,17 @@ imports:
       tag: v0.5.0
     dldir: ariel-os
 
+modules:
+  - name: pico-ram-requirement
+    help: rpi-pico2-w needs more ram
+    selects:
+      - rpi-pico-w
+      - rpi-pico2-w
+    env:
+      global:
+        executor_stacksize_required:
+          - "96000"
+
 apps:
   - name: mobile-asset-tracker-scanner-aio-http
 
@@ -16,3 +27,4 @@ apps:
       - network
       - alloc
       - random
+      - ?pico-ram-requirement
