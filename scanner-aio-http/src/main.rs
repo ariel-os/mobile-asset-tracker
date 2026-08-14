@@ -14,7 +14,7 @@ use reqwless::{
 
 use ariel_os::{
     identity::Eui48,
-    log::{debug, info},
+    log::{debug, info, warn, Debug2Format},
     reexports::embassy_net::{
         dns::DnsSocket,
         tcp::client::{TcpClient, TcpClientState},
@@ -99,9 +99,9 @@ async fn receive_tags() {
 
         let body = serde_json::to_vec(&payload).unwrap();
 
-        send_data_to_backend(&mut client, BACKEND_ENDPOINT, &body)
-            .await
-            .unwrap();
+        if let Err(err) = send_data_to_backend(&mut client, BACKEND_ENDPOINT, &body).await {
+            warn!("Couldn't send request: {:?}", Debug2Format(&err));
+        }
     }
 }
 
