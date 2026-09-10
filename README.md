@@ -172,13 +172,14 @@ The default advertised CompleteLocalName is "Ariel OS BLE", to change it you can
 
 ### LED status
 
-There is an RGB led on the Thingy91X, for now each color (red, green, blue) is used as individual LEDs to represent the status of different components.
+There is an RGB led on the Thingy91X, this LED blinks with different colors to indicate the current status:
 
-- Red: first GNSS fix hasn't been acquired yet (location unknown)
-- Blue: last data returned by the GNSS module was a valid location (updates every second)
-- Green: sending update to the server using LTE-M.
-
-Since those 3 colors are in the same package, two concurrent statuses can make different colors.
+- Blue: Waiting before sending another update.
+- Cyan: acquiring GNSS position.
+- Yellow: last GNSS acquisistion attempt failed.
+- Purple: Waiting for BLE tags to be sent through UART.
+- White: Connecting to the LTEM network.
+- Green: Network communication in progress.
 
 ### Input
 
