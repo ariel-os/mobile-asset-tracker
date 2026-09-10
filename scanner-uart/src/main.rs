@@ -94,14 +94,19 @@ async fn send_scan_data(mut peripherals: pins::Peripherals) {
 
         let tags: Vec<DetectedTag, MAX_SEEN> = seen
             .iter()
-            .map(|(_id, report)| DetectedTag {
-                age: u16::try_from(now.duration_since(report.timestamp).as_secs())
-                    .unwrap_or(u16::MAX),
-                rssi: report.rssi,
-                addr: heapless::format!("{}", Eui48(report.addr.into_inner()))
-                    .unwrap_or(heapless::String::try_from("encode error").unwrap()),
-                name: report.name.clone(),
-                sequence: report.sequence,
+            .map(|(_id, report)| {
+                // BdAddr stores it in reverse order of what Eui48 expects.
+                let mut addr = report.addr.into_inner();
+                addr.reverse();
+                DetectedTag {
+                    age: u16::try_from(now.duration_since(report.timestamp).as_secs())
+                        .unwrap_or(u16::MAX),
+                    rssi: report.rssi,
+                    addr: heapless::format!("{}", Eui48(addr))
+                        .unwrap_or(heapless::String::try_from("encode error").unwrap()),
+                    name: report.name.clone(),
+                    sequence: report.sequence,
+                }
             })
             .collect();
 
