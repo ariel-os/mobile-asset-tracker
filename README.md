@@ -113,7 +113,7 @@ We need to flash both cores of the nRF5340 and the nRF9151.
 Set the SWD switch (SW2) to the "nRF53" posistion.
 
 ```sh
-cd net
+cd scanner-uart
 laze build -b nordic-thingy-91-x-nrf5340-net run
 ```
 
