@@ -229,6 +229,6 @@ async def loop():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    logging.getLogger("coap-server").setLevel(logging.INFO)
+    logging.getLogger("coap-server").setLevel(logging.ERROR)
 
     asyncio.run(main())
