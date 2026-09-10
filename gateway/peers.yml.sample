@@ -1,0 +1,9 @@
+
+- from: unauthenticated
+  scope:
+    /.well-known/core: GET
+
+- kccs: |
+    {8:{1:{1:2,2:h'1a',-1:1,-2:h'550f185ea65de43de79e288602400c37b5cff0c9cbe0c4d3d534d44709cd7848',-3:h'c8bcb30fd5908f39d921b44b9fb609da8dd966a49be79e2ce64d6340a74c7f71'}}}
+  # This simple alternative to per-resource permission allows all requests.
+  scope: allow-all
