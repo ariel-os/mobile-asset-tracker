@@ -78,7 +78,7 @@ async fn receive_tags() {
 
     loop {
         let value = receiver.receive().await;
-
+        info!("value {:?}", Debug2Format(&value));
         let mut addr = value.addr.into_inner();
         // To big endian representation
         addr.reverse();
@@ -86,7 +86,7 @@ async fn receive_tags() {
 
         let payload = common_types::AdvertisementPayload {
             adv_type: heapless::String::try_from("").unwrap(),
-            channel: 0,
+            channel: value.channel_number,
             mac,
             name: value.name,
             raw_rssi: value.rssi,

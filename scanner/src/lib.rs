@@ -39,6 +39,7 @@ pub struct TagReport {
     pub timestamp: embassy_time::Instant,
     pub rssi: i8,
     pub sequence: u32,
+    pub channel_number: u8,
 }
 
 pub struct TagScanner {
@@ -120,6 +121,12 @@ impl TagScanner {
     }
 }
 
+struct ParsedAdvertisement {
+    name: heapless::String<TAG_NAME_MAX_LEN>,
+    sequence: u32,
+    channel_number: u8,
+}
+
 struct ScanEventHandler<'a> {
     prefix: [u8; 3],
     sender: channel::Sender<'a, CriticalSectionRawMutex, TagReport, CHANNEL_CAPACITY>,
@@ -135,14 +142,14 @@ impl<'a> ScanEventHandler<'a> {
 }
 
 impl ScanEventHandler<'_> {
-    /// Returns name and sequence number from the advertisement.
-    fn parse_manufacturer_data(
-        report: LeAdvReport,
-    ) -> Option<(heapless::String<TAG_NAME_MAX_LEN>, u32)> {
+    /// Returns name, sequence and channel numbers from the advertisement.
+    /// Returns none if advertisement doesn't match the expected format.
+    fn parse_manufacturer_data(report: LeAdvReport) -> Option<ParsedAdvertisement> {
         let adv_data = AdStructure::decode(report.data);
 
         let mut sequence = None;
         let mut name: Option<heapless::String<TAG_NAME_MAX_LEN>> = None;
+        let mut channel_number: Option<u8> = None;
         for adv in adv_data {
             match adv {
                 Ok(AdStructure::ManufacturerSpecificData {
@@ -153,7 +160,7 @@ impl ScanEventHandler<'_> {
                         return None;
                     }
 
-                    if payload.len() < 4 {
+                    if payload.len() < 5 {
                         return None;
                     }
 
@@ -161,6 +168,8 @@ impl ScanEventHandler<'_> {
                     sequence_data.copy_from_slice(payload.get(0..=3)?);
 
                     sequence = Some(u32::from_be_bytes(sequence_data));
+
+                    channel_number = payload.get(4).copied();
                 }
                 Ok(AdStructure::CompleteLocalName(data)) => {
                     let container: Vec<u8, TAG_NAME_MAX_LEN> = Vec::from_slice(data).ok()?;
@@ -172,7 +181,11 @@ impl ScanEventHandler<'_> {
             }
         }
 
-        name.and_then(|name| sequence.map(|sequence| (name, sequence)))
+        Some(ParsedAdvertisement {
+            name: name?,
+            sequence: sequence?,
+            channel_number: channel_number?,
+        })
     }
 }
 
@@ -189,13 +202,19 @@ impl EventHandler for ScanEventHandler<'_> {
                 continue;
             }
 
-            if let Some((name, sequence)) = Self::parse_manufacturer_data(report) {
+            if let Some(ParsedAdvertisement {
+                name,
+                sequence,
+                channel_number,
+            }) = Self::parse_manufacturer_data(report)
+            {
                 let _ = self.sender.try_send(TagReport {
                     addr,
                     name,
                     timestamp: instant,
                     rssi,
                     sequence,
+                    channel_number,
                 });
             }
         }
