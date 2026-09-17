@@ -5,7 +5,7 @@
 mod config;
 mod pins;
 
-use ariel_os::{log::info, reexports::embassy_time, time::Timer};
+use ariel_os::{log::{debug, info}, reexports::embassy_time, time::Timer};
 use embassy_futures::join::join;
 #[cfg(all(context = "nrf52840", feature = "nrf-qspi-optimisation"))]
 use embassy_nrf::{
@@ -14,7 +14,7 @@ use embassy_nrf::{
 };
 use embassy_time::Duration;
 use trouble_host::advertise::{
-    AdStructure, Advertisement, AdvertisementParameters, BR_EDR_NOT_SUPPORTED,
+    AdStructure, AdvChannelMap, Advertisement, AdvertisementParameters, BR_EDR_NOT_SUPPORTED,
     LE_GENERAL_DISCOVERABLE,
 };
 
@@ -24,6 +24,24 @@ use config::*;
 bind_interrupts!(struct Irqs {
     QSPI => qspi::InterruptHandler<peripherals::QSPI>;
 });
+
+#[derive(Debug, defmt::Format)]
+struct AdvertisementPayload {
+    pub sequence: u32,
+    pub channel_number: u8,
+}
+
+impl AdvertisementPayload {
+    pub fn to_bytes(&self) -> [u8; 5] {
+        [
+            self.sequence.to_be_bytes()[0],
+            self.sequence.to_be_bytes()[1],
+            self.sequence.to_be_bytes()[2],
+            self.sequence.to_be_bytes()[3],
+            self.channel_number,
+        ]
+    }
+}
 
 #[cfg(all(context = "nrf52840", feature = "nrf-qspi-optimisation"))]
 #[ariel_os::task(autostart, peripherals)]
@@ -68,26 +86,40 @@ async fn run_advertisement() {
     info!("Starting advertising");
 
     let mut sequence: u32 = 0;
-
+    let mut channel_number: u8 = 37;
     let _ = join(host.runner.run(), async {
         loop {
-            let sequence_bytes = sequence.to_be_bytes();
-
+            let payload = AdvertisementPayload {
+                sequence,
+                channel_number,
+            };
+            debug!("payload {:?}", payload);
             let len = AdStructure::encode_slice(
                 &[
                     AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
                     AdStructure::CompleteLocalName(TAG_NAME.as_bytes()),
                     AdStructure::ManufacturerSpecificData {
                         company_identifier: 0xFFFF,
-                        payload: &sequence_bytes,
+                        payload: &payload.to_bytes(),
                     },
                 ],
                 &mut adv_data[..],
             )
             .unwrap();
+            // channels are disabled by default
+            let channel_map = AdvChannelMap::new();
+            let channel_map = match channel_number {
+                37 => channel_map.enable_channel_37(true),
+                38 => channel_map.enable_channel_38(true),
+                39 => channel_map.enable_channel_39(true),
+                _ => channel_map,
+            };
+            let channel_map = Some(channel_map);
+
             let params = AdvertisementParameters {
                 interval_min: Duration::from_millis(ADVERTISEMENT_INTERVAL * 16),
                 interval_max: Duration::from_millis(ADVERTISEMENT_INTERVAL * 16),
+                channel_map,
                 // max_events: Some(1),
                 ..Default::default()
             };
@@ -105,6 +137,11 @@ async fn run_advertisement() {
 
             Timer::after_millis(ADVERTISEMENT_INTERVAL).await;
             sequence += 1;
+            channel_number = if channel_number < 39 {
+                channel_number + 1
+            } else {
+                37
+            };
         }
     })
     .await;
