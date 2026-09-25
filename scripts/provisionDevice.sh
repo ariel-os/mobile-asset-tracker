@@ -8,6 +8,15 @@
 # Henri SIMOES                                      - September, 2026
 ########################################################################
 
+MAC_ADDRESS=$1
+ASSET=$2
+TENANT=tenant-geosecur-trackgoods
+DEVICE_MODEL=Arielos
+ASSET_MODEL=CaisseMobile
+
+URL_BACKEND="https://geosecur-api.sta.innovation-laposte.io"
+# TOKEN a lire soit  depuis l'environnement, ou a defaut ici interactivement
+
 function usage () {
   echo "Usage: $0 <MAC address> <asset>" >&2
   exit 1
@@ -79,16 +88,11 @@ if [ -z ${TOKEN+x} ]; then
         read -s TOKEN
 fi
 
-MAC_ADDRESS=$1
-ASSET=$2
 
-URL_BACKEND="https://geosecur-api.sta.innovation-laposte.io"
-# TOKEN a lire depuis l'environnement
-
-# https://geosecur-api.sta.innovation-laposte.io/_/device-manager/payload/arielos
+# https://geosecur-api.sta.innovation-laposte.io/_/device-manager/payload/${${DEVICE_MODEL}}
 
 # Create device
-id=$(httpRequest _id .result._id POST ${URL_BACKEND}/_/device-manager/tenant-geosecur-trackgoods/devices model=Arielos reference=${MAC_ADDRESS}) || {
+id=$(httpRequest _id .result._id POST ${URL_BACKEND}/_/device-manager/${TENANT}/devices model=${DEVICE_MODEL} reference=${MAC_ADDRESS}) || {
         echo "Id could not be retrieved"
         exit 1;
     }
@@ -96,17 +100,17 @@ echo "Device created. Id : $id"
 
 # POST http://kuzzle:7512/_/device-manager/:engineId/assets/_search
 # query='{bool:{filter:[{term:{model:"CaisseMobile"}},{term:{reference:"'${ASSET}'"}}]}}'
-query=$(jq -nc --arg m "CaisseMobile" --arg r "$ASSET" \
+query=$(jq -nc --arg m "${ASSET_MODEL}" --arg r "$ASSET" \
     '{bool:{filter:[{term:{model:$m}},{term:{reference:$r}}]}}')
 # echo $query
-assetId=$(httpRequest _id '.result.hits[0]._id' POST ${URL_BACKEND}/_/device-manager/tenant-geosecur-trackgoods/assets/_search "query:=${query}") || {
+assetId=$(httpRequest _id '.result.hits[0]._id' POST ${URL_BACKEND}/_/device-manager/${TENANT}/assets/_search "query:=${query}") || {
         echo "assetId could not be retrieved"
         exit 1;
     }
 echo "assetId=${assetId}"
 
 # PUT http://kuzzle:7512/_/device-manager/:engineId/devices/:_id/_link/:assetId
-status=$(httpRequest status .status PUT "${URL_BACKEND}/_/device-manager/tenant-geosecur-trackgoods/devices/${id}/_link/${assetId}" implicitMeasuresLinking==true) || {
+status=$(httpRequest status .status PUT "${URL_BACKEND}/_/device-manager/${TENANT}/devices/${id}/_link/${assetId}" implicitMeasuresLinking==true) || {
         echo "Status could not be retrieved"
         exit 1;
     }
