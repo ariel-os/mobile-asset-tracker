@@ -4,18 +4,17 @@
 # provisionDevice.sh
 # 
 # Provision our device by calling the Kuzzle APIs
+# Necessary env vars are read from ".env" file or from environment
 #
 # Henri SIMOES                                      - September, 2026
 ########################################################################
 
 MAC_ADDRESS=$1
 ASSET=$2
-TENANT=tenant-geosecur-trackgoods
-DEVICE_MODEL=Arielos
-ASSET_MODEL=CaisseMobile
 
-URL_BACKEND="https://geosecur-api.sta.innovation-laposte.io"
 # TOKEN a lire soit  depuis l'environnement, ou a defaut ici interactivement
+# other vars can be read from .env file if exists, or else from environment :
+# TENANT, DEVICE_MODEL, ASSET_MODEL, URL_BACKEND
 
 function usage () {
   echo "Usage: $0 <MAC address> <asset>" >&2
@@ -83,13 +82,19 @@ fi
 # install HTTPie first
 command -v http >/dev/null 2>&1 || { echo "Erreur : l'utilitaire 'http' (HTTPie) est introuvable. Installez-le avec : sudo apt install httpie" >&2; exit 1; }
 
+if [ -f .env ]; then
+    source .env
+fi
+
+[ -z ${TENANT+x} ] && { echo '$TENANT undefined. Please define it first' >&2; exit 1; } 
+[ -z ${URL_BACKEND+x} ] && { echo '$URL_BACKEND undefined. Please define it first' >&2; exit 1; } 
+[ -z ${DEVICE_MODEL+x} ] && { echo '$DEVICE_MODEL undefined. Please define it first' >&2; exit 1; } 
+[ -z ${ASSET_MODEL+x} ] && { echo '$ASSET_MODEL undefined. Please define it first' >&2; exit 1; } 
+
 if [ -z ${TOKEN+x} ]; then
         echo "Enter token : "
         read -s TOKEN
 fi
-
-
-# https://geosecur-api.sta.innovation-laposte.io/_/device-manager/payload/${${DEVICE_MODEL}}
 
 # Create device
 id=$(httpRequest _id .result._id POST ${URL_BACKEND}/_/device-manager/${TENANT}/devices model=${DEVICE_MODEL} reference=${MAC_ADDRESS}) || {
