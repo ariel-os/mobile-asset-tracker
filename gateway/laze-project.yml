@@ -1,8 +1,8 @@
 imports:
   - git:
       url: https://github.com/nponsard/ariel-os
-      # branch: laposte-demo-v0.5.1
-      commit: 9f5304ec7de700b113643ce9d695bc8a64f2bf4b
+      # branch: mobile-asset-tracker-v0.6.0
+      commit: 634d6371c78938893632715edf018c95f7e3a535
     dldir: ariel-os
 
 apps:

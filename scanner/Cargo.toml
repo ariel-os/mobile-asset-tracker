@@ -11,7 +11,7 @@ harness = false
 trouble-host = { version = "0.5.1", features = ["derive", "scan"] }
 heapless = { version = "0.9.2", features = ["serde"] }
 serde = { version = "1.0.228", default-features = false, features = ["derive"] }
-embassy-sync = "0.6.2"
+embassy-sync = "0.7.2"
 bt-hci = "0.6.0"
 common-types = { path = "../common-types" }
 embassy-futures = { version = "0.1.1" }

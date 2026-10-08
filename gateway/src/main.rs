@@ -164,7 +164,7 @@ async fn gnss_runner() {
     config.operation_mode = ariel_os_sensor_nrf91_gnss::config::GnssOperationMode::SingleShot(
         GNNS_AQUISITION_TIMEOUT_SEC,
     );
-    config.power_mode = ariel_os_sensor_nrf91_gnss::config::GnssPowerSaveMode::DutyCycling;
+    config.power_saving_mode = ariel_os_sensor_nrf91_gnss::config::GnssPowerSavingMode::DutyCyclingAggressive;
 
     sensors::NRF91_GNSS.init(config).await;
     sensors::nrf91_gnss_runner().await;

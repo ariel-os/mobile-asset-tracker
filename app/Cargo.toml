@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 ariel-os = { path = "build/imports/ariel-os/src/ariel-os", features = ["time"] }
 ariel-os-boards = { path = "build/imports/ariel-os/src/ariel-os-boards" }
-embassy-nrf = { version = "0.8.0", features = ["nrf5340-app-s"] }
+embassy-nrf = { version = "0.9.0", features = ["nrf5340-app-s"] }
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
   'cfg(context, values(any()))',

@@ -1,4 +1,4 @@
-use ariel_os::hal::{peripherals, uart};
+use ariel_os::hal::uart;
 
 // VCOM1
 #[cfg(context = "nordic-thingy-91-x-nrf9151")]

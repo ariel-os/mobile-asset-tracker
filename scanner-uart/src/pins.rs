@@ -1,5 +1,3 @@
-use ariel_os::hal::peripherals;
-
 #[cfg(context = "nordic-thingy-91-x-nrf5340-net")]
 ariel_os::hal::define_peripherals!(Peripherals {
     // VCOM1 TX
