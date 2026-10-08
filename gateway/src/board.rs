@@ -1,5 +1,5 @@
 #[cfg(context = "nordic-thingy-91-x-nrf9151")]
-use ariel_os::{hal::peripherals, log::info, time::Timer};
+use ariel_os::{log::info, time::Timer};
 #[cfg(context = "nordic-thingy-91-x-nrf9151")]
 pub type SensorI2c = ariel_os::hal::i2c::controller::SERIAL1;
 #[cfg(context = "nordic-thingy-91-x-nrf9151")]
@@ -16,8 +16,11 @@ ariel_os::hal::define_peripherals!(Peripherals {});
 #[cfg(context = "nordic-thingy-91-x-nrf9151")]
 #[ariel_os::task(autostart, peripherals)]
 async fn board_init(peripherals: Peripherals) {
-    use ariel_os::gpio::{Input, Pull};
-    use ariel_os::i2c::controller::{Kilohertz, highest_freq_in};
+    use ariel_os::{
+        gpio::{Input, Pull},
+        i2c::controller::{Kilohertz, highest_freq_in},
+        log::debug,
+    };
     use embedded_hal_async::i2c::I2c;
 
     let mut pmic_interrupt = Input::builder(peripherals.pmic_interrupt, Pull::Down)
@@ -32,7 +35,6 @@ async fn board_init(peripherals: Peripherals) {
     ariel_os::hal::boards::init_thingy91x_board(&mut i2c_bus, true, true)
         .await
         .unwrap();
-
 
     i2c_bus.write(0x6b, &[0x06, 0x03, 0x05]).await.unwrap();
 
