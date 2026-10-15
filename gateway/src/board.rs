@@ -36,6 +36,10 @@ async fn board_init(peripherals: Peripherals) {
         .await
         .unwrap();
 
+    // clear EVENTSBCHARGER0CLR to initialize battery charger events.
+    i2c_bus.write(0x6b, &[0x03, 0x07, 0xff]).await.unwrap();
+
+    // set GPIOMODE[3] to interrupt output.
     i2c_bus.write(0x6b, &[0x06, 0x03, 0x05]).await.unwrap();
 
     // Enable EVENTADCVBATRDY interrupt in INTENEVENTSADCSET.
@@ -91,6 +95,29 @@ async fn board_init(peripherals: Peripherals) {
 
         info!("VBAT: {}", vbat);
 
+        // read status
+        let mut buffer = [0u8, 1];
+
+        // BCHGCHARGESTATUS
+        i2c_bus
+            .write_read(0x6b, &[0x03, 0x34], &mut buffer)
+            .await
+            .unwrap();
+        info!("BCHGCHARGESTATUS: 0x{:x}", buffer[0]);
+
+        // BCHGERRREASON
+        i2c_bus
+            .write_read(0x6b, &[0x03, 0x36], &mut buffer)
+            .await
+            .unwrap();
+        info!("BCHGERRREASON: 0x{:x}", buffer[0]);
+
+        // BCHGERRSENSOR
+        i2c_bus
+            .write_read(0x6b, &[0x03, 0x37], &mut buffer)
+            .await
+            .unwrap();
+        info!("BCHGERRSENSOR: 0x{:x}", buffer[0]);
         Timer::after_secs(2).await;
     }
 }
