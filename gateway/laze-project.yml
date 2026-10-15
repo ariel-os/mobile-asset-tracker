@@ -30,13 +30,23 @@ modules:
   - name: http-backend
     conflicts:
       - coap-backend
+      - mqtt-backend
     env:
       global:
         FEATURES:
           - http-backend
+  - name: mqtt-backend
+    conflicts:
+      - coap-backend
+      - http-backend
+    env:
+      global:
+        FEATURES:
+          - mqtt-backend
   - name: coap-backend
     conflicts:
       - http-backend
+      - mqtt-backend
     selects:
       - coap-client
       - coap-server

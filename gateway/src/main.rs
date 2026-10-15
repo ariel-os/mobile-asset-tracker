@@ -6,6 +6,9 @@ mod coap;
 mod config;
 #[cfg(feature = "http-backend")]
 mod http;
+#[cfg(feature = "mqtt-backend")]
+mod mqtt;
+
 mod pins;
 mod sensors;
 
@@ -164,7 +167,8 @@ async fn gnss_runner() {
     config.operation_mode = ariel_os_sensor_nrf91_gnss::config::GnssOperationMode::SingleShot(
         GNNS_AQUISITION_TIMEOUT_SEC,
     );
-    config.power_saving_mode = ariel_os_sensor_nrf91_gnss::config::GnssPowerSavingMode::DutyCyclingAggressive;
+    config.power_saving_mode =
+        ariel_os_sensor_nrf91_gnss::config::GnssPowerSavingMode::DutyCyclingAggressive;
 
     sensors::NRF91_GNSS.init(config).await;
     sensors::nrf91_gnss_runner().await;
@@ -262,17 +266,17 @@ async fn get_location() -> Result<Location, UpdateLocationError> {
 
 #[ariel_os::task(autostart, peripherals)]
 async fn updates(mut peripherals: Peripherals) {
-    let stack = ariel_os::net::network_stack().await.unwrap();
-    #[cfg(feature = "http-backend")]
-    let mut client = http::create_http_client(stack).await;
-
-    let mut last_update_start_timestamp = Instant::from_ticks(0);
-
     let device_id: String<TAG_NAME_MAX_LEN> = ariel_os::identity::interface_eui48(1)
         .map(|eui| heapless::format!("{}", eui).unwrap())
         .unwrap_or(String::from_str("unknown").unwrap());
 
     info!("Device ID: {}", device_id.as_str());
+
+    let stack = ariel_os::net::network_stack().await.unwrap();
+    #[cfg(feature = "http-backend")]
+    let mut client = http::create_http_client(stack).await;
+
+    let mut last_update_start_timestamp = Instant::from_ticks(0);
 
     let mut btn1 = Input::builder(peripherals.user_interaction.btn1, Pull::Up)
         .build_with_interrupt()
@@ -315,7 +319,6 @@ async fn updates(mut peripherals: Peripherals) {
         }
 
         last_update_start_timestamp = Instant::now();
-
 
         // Make sure LTEM is disabled
         ltem::disable();
@@ -428,7 +431,7 @@ async fn updates(mut peripherals: Peripherals) {
             coap::send_update(update).await
         }
 
-        #[cfg(feature = "http-backend")]
+        #[cfg(any(feature = "http-backend", feature = "mqtt-backend"))]
         {
             debug!("Serializing response");
 
@@ -445,20 +448,28 @@ async fn updates(mut peripherals: Peripherals) {
                 Debug2Format(&serde_json::to_string(&update).unwrap())
             );
 
-            debug!("Sending request");
-            if let Err(err) =
-                http::send_kuzzle_post_request(&mut client, KUZZLE_ENDPOINT, body.as_slice()).await
+            #[cfg(feature = "http-backend")]
             {
-                error!(
-                    "Error while sending an HTTP request: {:?}",
-                    Debug2Format(&err)
-                );
+                debug!("Sending request");
+                if let Err(err) =
+                    http::send_kuzzle_post_request(&mut client, KUZZLE_ENDPOINT, body.as_slice())
+                        .await
+                {
+                    error!(
+                        "Error while sending an HTTP request: {:?}",
+                        Debug2Format(&err)
+                    );
+                }
+            }
+            #[cfg(feature = "mqtt-backend")]
+            {
+                debug!("Sending request");
+                mqtt::mqtt_connect_and_publish(&device_id, stack, body.as_slice()).await;
             }
         }
 
         debug!("Update sent to backend");
 
         ltem::disable();
-        // stack.wait_link_down().await;
     }
 }

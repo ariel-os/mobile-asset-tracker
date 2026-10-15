@@ -23,6 +23,28 @@ mod coap {
 #[cfg(feature = "coap-backend")]
 pub use coap::*;
 
+#[cfg(feature = "mqtt-backend")]
+mod mqtt {
+    use ariel_os::config::{ipv4_addr_from_env, str_from_env, str_from_env_or};
+    use const_str::parse;
+    use core::net::Ipv4Addr;
+
+    pub const MQTT_HOST_NAME: &str = str_from_env!("MQTT_HOST_NAME", "MQTT Host name");
+    pub const MQTT_HOST_IP: Ipv4Addr = ipv4_addr_from_env!("MQTT_HOST_IP", "MQTT Host IP");
+    pub const MQTT_HOST_PORT: u16 = parse!(
+        str_from_env_or!("MQTT_HOST_PORT", "8883", "MQTT port number"),
+        u16
+    );
+    pub const MQTT_USER: &str = str_from_env!("MQTT_USER", "MQTT user");
+    pub const MQTT_PWD: &str = str_from_env!("MQTT_PWD", "MQTT password");
+    // topic will be built dynamically, example : <root>/<device id>/(<config> || <data>)
+    pub const MQTT_TOPIC_ROOT: &str = "trm";
+    pub const MQTT_TOPIC_CONFIG: &str = "config";
+    pub const MQTT_TOPIC_DATA: &str = "data";
+}
+#[cfg(feature = "mqtt-backend")]
+pub use mqtt::*;
+
 pub const TIME_BETWEEN_UPDATES: Duration = Duration::from_secs(15 * 60);
 
 pub const GNNS_AQUISITION_TIMEOUT_SEC: u16 = 360;
