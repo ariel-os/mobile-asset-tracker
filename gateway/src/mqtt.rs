@@ -1,10 +1,11 @@
 use alloc::format;
 use ariel_os::{
-    log::{Debug2Format, info, warn},
+    log::{Debug2Format, error, info, warn},
     reexports::embassy_net::{self, Stack},
     time::Duration,
     time::Timer,
 };
+use core::num::NonZero;
 use embedded_tls::{Aes128GcmSha256, TlsConfig, TlsConnection, TlsContext};
 use rust_mqtt::client::Client;
 use rust_mqtt::{
@@ -13,7 +14,7 @@ use rust_mqtt::{
         event::Event,
         options::{ConnectOptions, DisconnectOptions, PublicationOptions, TopicReference},
     },
-    config::SessionExpiryInterval,
+    config::{KeepAlive, SessionExpiryInterval},
     types::{MqttBinary, MqttString, TopicName},
 };
 
@@ -101,18 +102,28 @@ pub async fn mqtt_connect_and_publish(client_id: &str, stack: Stack<'static>, da
 
     let connect_options = ConnectOptions::new()
         .clean_start()
-        .session_expiry_interval(SessionExpiryInterval::NeverEnd)
+        .session_expiry_interval(SessionExpiryInterval::Seconds(NonZero::new(5).unwrap()))
+        .keep_alive(KeepAlive::Seconds(NonZero::new(5).unwrap()))
         .user_name(MqttString::from_str(MQTT_USER).unwrap())
         .password(MqttBinary::from_slice(MQTT_PWD.as_bytes()).unwrap());
 
-    client
+    match client
         .connect(
             transport,
             &connect_options,
-            Some(MqttString::from_str(client_id).unwrap()),
+            Some(MqttString::try_from(client_id).unwrap()),
         )
         .await
-        .unwrap();
+    {
+        Ok(_) => {
+            info!("Connected successfully to MQTT");
+        }
+        Err(e) => {
+            error!("Failed to connect to server: {:?}", Debug2Format(&e));
+            error!("Connection failed to MQTT");
+            return;
+        }
+    }
 
     // build the topinc string
     let topic_str = format!("{}/{}/{}", MQTT_TOPIC_ROOT, client_id, MQTT_TOPIC_DATA);
@@ -128,10 +139,14 @@ pub async fn mqtt_connect_and_publish(client_id: &str, stack: Stack<'static>, da
         .await
         .unwrap()
         .unwrap();
-    info!("After publish, {:?}", Debug2Format(&_packet_identifier));
+    info!(
+        "After publish, packet id : {:?}",
+        Debug2Format(&_packet_identifier)
+    );
 
     while let Ok(event) = client.poll().await {
         if let Event::PublishComplete(_) = event {
+            info!("Publish succeeded. Disconnecting from MQTT ...");
             // Publish succeeded, we can disconnect
             client.disconnect(&DisconnectOptions::new()).await.unwrap();
             return;
