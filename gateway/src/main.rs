@@ -391,6 +391,7 @@ async fn updates(mut peripherals: Peripherals) {
 
         ltem::enable();
         stack.wait_link_up().await;
+        stack.wait_config_up().await;
 
         info!("Cellular networking up");
 
