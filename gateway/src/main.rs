@@ -37,6 +37,8 @@ use common_types::{DetectedTag, GatewayUpdate, Location, TAG_NAME_MAX_LEN, TagsS
 use config::*;
 use pins::{LedPeripherals, Peripherals};
 
+use crate::board::vbat_mv;
+
 static LED_STATE_CHANNEL: embassy_sync::channel::Channel<CriticalSectionRawMutex, LedState, 1> =
     embassy_sync::channel::Channel::new();
 
@@ -420,11 +422,13 @@ async fn updates(mut peripherals: Peripherals) {
             location,
             detected_tags,
             // FIXME: get battery level
-            battery_level: Some(100),
+            //battery_level: Some(100),
+            battery_level: vbat_mv().map(board::battery_percent),
             // You may want to use another form of ID
             gateway_id: device_id.clone(),
             // FIXME: track time instead of relying on the last GPS update
             timestamp: location.map(|l| l.time_of_fix).unwrap_or(0),
+            battery_voltage_millivolt: vbat_mv(),
         };
 
         #[cfg(feature = "coap-backend")]

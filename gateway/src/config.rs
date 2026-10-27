@@ -46,6 +46,7 @@ mod mqtt {
 pub use mqtt::*;
 
 pub const TIME_BETWEEN_UPDATES: Duration = Duration::from_secs(15 * 60);
+pub const TIME_BETWEEN_VBAT_MEASURES: Duration = Duration::from_secs(6 * 60);
 
 pub const GNNS_AQUISITION_TIMEOUT_SEC: u16 = 360;
 
