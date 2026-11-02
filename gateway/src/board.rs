@@ -1,5 +1,5 @@
 #[cfg(context = "nordic-thingy-91-x-nrf9151")]
-use ariel_os::{log::info, log::trace, time::Timer};
+use ariel_os::{log::trace, time::Timer};
 #[cfg(context = "nordic-thingy-91-x-nrf9151")]
 pub type SensorI2c = ariel_os::hal::i2c::controller::SERIAL1;
 #[cfg(context = "nordic-thingy-91-x-nrf9151")]
@@ -106,12 +106,12 @@ async fn board_init(peripherals: Peripherals) {
         // 8 bits from buffer_msb and 2 bits from buffer_lsbs (the 2 least significant ones).
         let vbat_raw: u16 = (buffer_msb[0] as u16) << 2 | (buffer_lsbs[0] & 0x3) as u16;
 
-        let vbat: u16 = (vbat_raw as u32 * 5000 / 1023) as u16;
-        VBAT_MV.store(vbat, Ordering::Relaxed);
+        let vbat_mv: u16 = (vbat_raw as u32 * 5000 / 1023) as u16;
+        VBAT_MV.store(vbat_mv, Ordering::Relaxed);
 
-        trace!("VBAT: {}", vbat);
+        trace!("VBAT_MV: {}", vbat_mv);
 
         // Timer::after_secs(2).await;
-        Timer::after(TIME_BETWEEN_VBAT_MEASURES).await;
+        Timer::after(crate::config::TIME_BETWEEN_VBAT_MEASURES).await;
     }
 }

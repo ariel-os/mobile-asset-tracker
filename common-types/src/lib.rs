@@ -91,7 +91,7 @@ pub struct GatewayUpdate {
     pub battery_level: Option<u8>,
     #[cfg_attr(feature = "minicbor", n(4))]
     pub location: Option<Location>,
-    #[serde(rename = "batteryVoltage")]
+    #[serde(rename = "batteryVoltageMillivolts")]
     #[cfg_attr(feature = "minicbor", n(5))]
     pub battery_voltage_millivolt: Option<u16>,
 }

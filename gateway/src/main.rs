@@ -417,18 +417,19 @@ async fn updates(mut peripherals: Peripherals) {
 
         info!("detected_tags: {:?}", Debug2Format(&detected_tags));
 
+        let vbat_millivolts = vbat_mv();
         // Backend forces to have values instead of undefined, so we send possibly wrong data.
         let update = GatewayUpdate {
             location,
             detected_tags,
             // FIXME: get battery level
             //battery_level: Some(100),
-            battery_level: vbat_mv().map(board::battery_percent),
+            battery_level: vbat_millivolts.map(board::battery_percent),
             // You may want to use another form of ID
             gateway_id: device_id.clone(),
             // FIXME: track time instead of relying on the last GPS update
             timestamp: location.map(|l| l.time_of_fix).unwrap_or(0),
-            battery_voltage_millivolt: vbat_mv(),
+            battery_voltage_millivolt: vbat_millivolts,
         };
 
         #[cfg(feature = "coap-backend")]
