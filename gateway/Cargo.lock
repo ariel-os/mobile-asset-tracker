@@ -1807,6 +1807,7 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2564b9f813c544241430e147d8bc454815ef9ac998878d30cc3055449f7fd4c0"
 dependencies = [
+ "defmt",
  "embedded-io 0.7.1",
 ]
 
@@ -3718,6 +3719,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9345427199453b4961a0a275edbca86d0472942d731c6d79a23517c1db8f7ca3"
 dependencies = [
  "const_fn",
+ "defmt",
  "embedded-io-async 0.7.0",
  "heapless 0.9.3",
 ]
